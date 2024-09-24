@@ -13,14 +13,19 @@ function ConvertTo-UrlQueryString {
         # $true will be stored as valueless entries in the query-string.
         [Parameter(ValueFromPipeline)]
         [Collections.IDictionary] $Members,
+
+        # A previous QueryString that this is continuing. If it's non-empty, then the beginning separator will be
+        # '&' instead of '?'
+        [Parameter()]
+        [string] $ContinuationOfString,
         
         # Leave the space-characters as space characters, which some browsers support.
         [switch] $SkipEncodeSpaces
     )
     process {
-        [string] $result = ""
-        if ($Members.Keys) {
-            $result += "?"
+        [string] $result = "" + $ContinuationOfString
+        if ($Members.Keys -and $Members.Keys.Count) {
+            $result += if (-not $ContinuationOfString) {"?"}
         }
         foreach($key in $Members.Keys) {
             $key = [uri]::EscapeDataString($key.ToString())
