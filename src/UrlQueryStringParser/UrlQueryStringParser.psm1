@@ -24,7 +24,12 @@ function ConvertTo-UrlQueryString {
     )
     process {
         [string] $result = "" + $ContinuationOfString
-        if ($Members.Keys -and $Members.Keys.Count) {
+        $hasContent = $Members.Keys |
+            Where-Object { Test-ValueIsWriteable $Members[$_]} |
+            Foreach-Object { $true } |
+            Select-Object -First 1
+
+        if ($hasContent) {
             $result += if (-not $ContinuationOfString) {"?"}
         }
         foreach($key in $Members.Keys) {
@@ -35,7 +40,7 @@ function ConvertTo-UrlQueryString {
             #
             # Note: -eq is NOT commutitive here, $false -eq '' but '' -ne $false.  The only falsey object we want
             # is empty strings, and other forms of this code will include that.
-            if ('' -eq $foundValue  -or $foundValue) {
+            if (Test-ValueIsWriteable $foundValue) {
                 $valueArray = @($foundValue)
                 if($value -is [array]) {
                     $valueArray = $foundValue
@@ -110,3 +115,21 @@ function ConvertFrom-UrlQueryString {
 }
 
 Export-ModuleMember -Function * -Alias *
+
+#region private functions
+
+function Test-ValueIsWriteable {
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline)]
+        
+        # The value to test. Can't use [string] here because that converts $null into ''
+        [object] $Value 
+    )
+    process {
+        #return 
+        '' -eq $Value -or $Value
+    }
+}
+
+#endregion

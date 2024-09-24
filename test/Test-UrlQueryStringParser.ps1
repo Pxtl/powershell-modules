@@ -5,11 +5,13 @@
 [CmdletBinding()]
 param()
 
-if ((ConvertTo-UrlQueryString @{"foo"=$true} -ContinuationOfString '') -ne '?foo') {
+Import-Module "$PSScriptRoot\..\src\UrlQueryStringParser" -Force
+
+if ((ConvertTo-UrlQueryString @{foo=$true} -ContinuationOfString '') -ne '?foo') {
     throw "Continuation of empty failed."
 }
 
-if ((ConvertTo-UrlQueryString @{"foo"=$true} -ContinuationOfString '?bar=baz') -ne '?bar=baz&foo') {
+if ((ConvertTo-UrlQueryString @{foo=$true} -ContinuationOfString '?bar=baz') -ne '?bar=baz&foo') {
     throw "Continuation of non-empty failed."
 }
 
@@ -17,15 +19,19 @@ if ((ConvertTo-UrlQueryString @{}) -ne "") {
     throw "Empty conversion to UrlQueryString failed."
 }
 
+if ((ConvertTo-UrlQueryString @{foo=$null;bar=$null}) -ne "") {
+    throw "Psuedo-empty conversion to UrlQueryString failed."
+}
+
 if ((ConvertTo-UrlQueryString @{} -ContinuationOfString '?bar=baz') -ne "?bar=baz") {
     throw "Continuation with empty failed."
 }
 
-if ((ConvertTo-UrlQueryString  @{"foo"='bar baz quux'} -SkipEncodeSpaces) -ne "?foo=bar baz quux") {
+if ((ConvertTo-UrlQueryString  @{foo='bar baz quux'} -SkipEncodeSpaces) -ne "?foo=bar baz quux") {
     throw "Skip encoding spaces failed."
 }
 
-if ((ConvertTo-UrlQueryString  @{"foo"='bar baz quux'}) -ne "?foo=bar%20baz%20quux") {
+if ((ConvertTo-UrlQueryString  @{foo='bar baz quux'}) -ne "?foo=bar%20baz%20quux") {
     throw "Encoding spaces failed."
 }
 
