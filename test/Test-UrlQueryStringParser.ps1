@@ -27,8 +27,17 @@ if ((ConvertTo-UrlQueryString @{} -ContinuationOfString '?bar=baz') -ne "?bar=ba
     throw "Continuation with empty failed."
 }
 
-if ((ConvertTo-UrlQueryString  @{foo='bar baz quux'} -SkipEncodeSpaces) -ne "?foo=bar baz quux") {
+if ((ConvertTo-UrlQueryString  @{foo='bar baz quux'} -DoMinimalEncode) -ne "?foo=bar baz quux") {
     throw "Skip encoding spaces failed."
+}
+
+if ((ConvertTo-UrlQueryString ([ordered]@{
+    allow = 'example equals= colon: at@ slash/ brackets[[] dollar$ comma, semicolon; question? parens()) star* exclaim! space space'
+    disallow = "example hash# ampersand& percent% plus+ tab`t linebreak`r`n "
+}) -DoMinimalEncode) -ne '?allow=example equals= colon: at@ slash/ brackets[[] dollar$ comma, semicolon; question? parens()) star* exclaim! space space' + 
+        '&disallow=example hash%23 ampersand%26 percent%25 plus%2B tab%09 linebreak%0D%0A '
+) {
+    throw "Skip encoding extra characters failed."
 }
 
 if ((ConvertTo-UrlQueryString  @{foo='bar baz quux'}) -ne "?foo=bar%20baz%20quux") {

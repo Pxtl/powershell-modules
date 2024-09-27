@@ -19,13 +19,14 @@ function ConvertTo-UrlQueryString {
         [Parameter()]
         [string] $ContinuationOfString,
         
-        # Leave the space-characters as space characters, which some browsers support.
-        [switch] $SkipEncodeSpaces
+        # Only encode characters that *must* be encoded instead of using standard encode..
+        [Alias('SkipEncodeSpaces')]
+        [switch] $DoMinimalEncode
     )
     process {
         [string] $result = "" + $ContinuationOfString
         $hasContent = $Members.Keys |
-            Where-Object { Test-ValueIsWriteable $Members[$_]} |
+            Where-Object { Test-UrlQueryStringValueIsWriteable $Members[$_]} |
             Foreach-Object { $true } |
             Select-Object -First 1
 
@@ -40,24 +41,31 @@ function ConvertTo-UrlQueryString {
             #
             # Note: -eq is NOT commutitive here, $false -eq '' but '' -ne $false.  The only falsey object we want
             # is empty strings, and other forms of this code will include that.
-            if (Test-ValueIsWriteable $foundValue) {
+            if (Test-UrlQueryStringValueIsWriteable $foundValue) {
                 $valueArray = @($foundValue)
                 if($value -is [array]) {
                     $valueArray = $foundValue
                 }
+                $field = if ($DoMinimalEncode) {
+                    $key | Format-UrlComponent -AsField
+                } else {
+                    $key | Format-UrlComponent
+                }
+
                 foreach ($value in $valueArray) {
-                    $value = [uri]::EscapeDataString($value.ToString())
-                    if ($SkipEncodeSpaces) {
-                        # only want to urlencode chars that aren't spaces in value.
-                        $value = $value -replace '%20', ' '
-                    }
                     if($result.Length -gt 1) {
                         $result += "&"
                     }
+
                     if ($value -eq $true) {
-                        $result += $key
+                        $result += $field
                     } else {
-                        $result += "$key=$value"
+                        $value = if ($DoMinimalEncode) {
+                            $value | Format-UrlComponent -AsValue
+                        } else {
+                            $value | Format-UrlComponent
+                        }
+                        $result += "$field=$value"
                     }
                 }
             }
@@ -71,8 +79,8 @@ function ConvertFrom-UrlQueryString {
     <#
     .SYNOPSIS
         Takes the given URL query string (optionally starts with "?") and converts it into a Powershell object
-        (OrderedDictionary). Valueless query members (?key1&key2) will be included as $true. Empty query members
-        (?key1=&key2) will be included as empty-string ''.
+        (OrderedDictionary). Valueless query members (?field1&field2) will be included as $true. Empty query members
+        (?field1=&field2) will be included as empty-string ''.
     #>
     [OutputType([Collections.Specialized.OrderedDictionary])]
     [CmdletBinding()]
@@ -91,16 +99,16 @@ function ConvertFrom-UrlQueryString {
             foreach($entry in $queryEntries) {
                 if ($entry -like '*=*') {
                     $equalsCharIndex = $entry.IndexOf("=")
-                    $key = $entry.Substring(0, $equalsCharIndex)
-                    $key = [uri]::UnescapeDataString($key)
+                    $field = $entry.Substring(0, $equalsCharIndex)
+                    $field = [uri]::UnescapeDataString($field)
                     $value = $entry.Substring($equalsCharIndex + 1, $entry.Length - $equalsCharIndex - 1)
                     $value = [uri]::UnescapeDataString($value)
-                    $existingValue = $result[$key]
+                    $existingValue = $result[$field]
                     if ($existingValue) {
                         # store as array (foreach flattens array)
-                        $result[$key] = ($existingValue, $value | ForEach-Object {$_})
+                        $result[$field] = ($existingValue, $value | ForEach-Object {$_})
                     } else {
-                        $result[$key] = $value
+                        $result[$field] = $value
                     }
                 } elseif ($entry) {
                     $entry = [uri]::UnescapeDataString($entry)
@@ -114,21 +122,173 @@ function ConvertFrom-UrlQueryString {
     }
 }
 
+
+function Format-UrlComponent {
+    <#
+    .SYNOPSIS
+        Format the given string as a URL component. If used in "standard" mode it will apply the default encoding,
+        but in all other cases it will attempt the minimum encoding, including undoing the encoding of characters
+        that browsers are flexible about for readability.
+    #>
+    [CmdletBinding(DefaultParameterSetName = "AsStandard")]
+    param (
+        [Parameter(ValueFromPipeline)]
+        [string] $InputObject,
+
+        [Parameter(ParameterSetName = "AsCommon")]
+        [switch] $AsCommon,
+
+        [Parameter(ParameterSetName = "AsPath")]
+        [switch] $AsPath,
+
+        [Parameter(ParameterSetName = "AsField")]
+        [switch] $AsField,
+
+        [Parameter(ParameterSetName = "AsValue")]
+        [switch] $AsValue
+    )
+    process {
+        $InputObject = [uri]::EscapeDataString($InputObject.ToString())
+        $replacements = $null
+        $regex = $null
+        
+        if ($AsCommon) {
+            $replacements = $urlCommonDecodes
+            $regex = $urlCommonDecodesRegex
+        } elseif ($AsPath) {
+            $replacements = $urlPathComponentDecodes
+            $regex = $urlPathComponentDecodesRegex
+        } elseif ($AsField) {
+            $replacements = $urlQueryStringFieldComponentDecodes
+            $regex = $urlQueryStringFieldComponentDecodesRegex
+        } elseif ($AsValue) {
+            $replacements = $urlQueryStringValueComponentDecodes
+            $regex = $urlQueryStringValueComponentDecodesRegex
+        }
+
+        if ($regex) {
+            $InputObject = Format-StringWithHashtable $InputObject -Replacements $replacements -Regex $regex
+        }
+
+        # return
+        $InputObject
+    }
+}
+
 Export-ModuleMember -Function * -Alias *
 
-#region private functions
+#region private objects
 
-function Test-ValueIsWriteable {
+function Test-UrlQueryStringValueIsWriteable {
+    <#
+    .SYNOPSIS
+        Test if the given value is writeable as a query-string value.
+    #>
     [CmdletBinding()]
     param(
-        [Parameter(ValueFromPipeline)]
-        
         # The value to test. Can't use [string] here because that converts $null into ''
-        [object] $Value 
+        [Parameter(ValueFromPipeline)]
+        [object] $InputObject
     )
     process {
         #return 
-        '' -eq $Value -or $Value
+        '' -eq $InputObject -or $InputObject
+    }
+}
+
+
+function ConvertTo-RegularExpression {
+    <#
+    .SYNOPSIS
+        Convert a hashtable's keys to a regular expression suitable for Format-StringWithHashtable
+    #>
+    [OutputType([Text.RegularExpressions.Regex])]
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline)]
+        [hashtable] $Replacements
+    )
+    process {
+        $regexString = [string]::Join("|", 
+            ($Replacements.Keys | ForEach-Object {[Text.RegularExpressions.Regex]::Escape($_)})
+        )
+
+        # return
+        [Text.RegularExpressions.Regex]::new($regexString, 
+            [Text.RegularExpressions.RegexOptions]::Compiled -bor [Text.RegularExpressions.RegexOptions]::IgnoreCase
+        )
+    }
+}
+
+
+# the following decodes are usable by all parts of the URL that we care about (everything but the scheme and authority)
+$urlCommonDecodes = @{
+    '%2F' = '/'
+    '%20' = ' '
+    '%40' = '@'
+    '%5B' = '['
+    '%5D' = ']'
+    '%24' = '$'
+    '%2C' = ','
+    '%3B' = ';'
+}
+$urlCommonDecodesRegex = ConvertTo-RegularExpression $urlCommonDecodes
+
+$urlPathComponentDecodes = $urlCommonDecodes + @{
+    '%3D' = '='
+}
+$urlPathComponentDecodesRegex = ConvertTo-RegularExpression $urlPathComponentDecodes
+
+$urlQueryStringFieldComponentDecodes = $urlCommonDecodes + @{
+    '%3A' = ':'
+    '%3F' = '?'
+}
+$urlQueryStringFieldComponentDecodesRegex = ConvertTo-RegularExpression $urlQueryStringFieldComponentDecodes
+
+# characters that do not appear to be invalid in a QueryString
+# [example](https://www.google.com/search?query=example+colon:at@+slash/+brackets[[]+dollar$+comma,+semicolon;+question?+space space)
+$urlQueryStringValueComponentDecodes = $urlQueryStringFieldComponentDecodes + @{
+    '%3D' = '='
+}
+$urlQueryStringValueComponentDecodesRegex = ConvertTo-RegularExpression $urlQueryStringValueComponentDecodes
+
+
+function Format-StringWithHashtable {
+    <#
+    .SYNOPSIS
+        Takes the given string and a hashtable and replaces all instances of the table keys within that string with
+        the corresponding table values.  Uses regular expressions, so for optimization purposes the pre-compiled
+        regular expression can be provided as -Regex.  That regex should be generated by
+        `ConvertTo-RegularExpression $myReplacementsTable`.
+    #>
+    [OutputType([string])]
+    [CmdletBinding()]
+    param(
+        [Parameter(ValueFromPipeline)]
+        [string] $InputObject,
+
+        [Parameter(Mandatory)]
+        [hashtable] $Replacements,
+        
+        # must be generated from -Replacements using ConvertTo-RegularExpression.  If not provided it will be
+        # created at run-time but this may be less-efficient.
+        [Parameter()]
+        [Text.RegularExpressions.Regex]
+        $Regex = $null
+    )
+    begin {
+        if (-not $Regex) {
+            $Regex = ConvertTo-RegularExpression $Replacements
+        }
+    }
+    process {
+        $matchEvaluator = {
+            param([Text.RegularExpressions.Match] $match)
+            $Replacements[$match.Value]
+        }
+
+        # return
+        $Regex.Replace($InputObject, $matchEvaluator)
     }
 }
 
