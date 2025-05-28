@@ -31,6 +31,14 @@ if ((ConvertTo-UrlQueryString  @{foo='bar baz quux'} -DoMinimalEncode) -ne "?foo
     throw "Skip encoding spaces failed."
 }
 
+if ((ConvertTo-UrlQueryString  @{'$foo'='bar'}) -ne "?%24foo=bar") {
+    throw "Encoding `$ in key failed."
+}
+
+if ((ConvertTo-UrlQueryString  @{'$foo'='bar'} -DoMinimalEncode) -ne "?`$foo=bar") {
+    throw "Skip encoding `$ in key failed."
+}
+
 if ((ConvertTo-UrlQueryString ([ordered]@{
     allow = 'example equals= colon: at@ slash/ brackets[[] dollar$ comma, semicolon; question? parens()) star* exclaim! space space'
     disallow = "example hash# ampersand& percent% plus+ tab`t linebreak`r`n "

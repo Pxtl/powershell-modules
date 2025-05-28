@@ -34,7 +34,6 @@ function ConvertTo-UrlQueryString {
             $result += if (-not $ContinuationOfString) {"?"}
         }
         foreach($key in $Members.Keys) {
-            $key = [uri]::EscapeDataString($key.ToString())
             $foundValue = $Members[$key]
             
             # Truthy values (or, as a special-case, empty string '') are included in the dict.
