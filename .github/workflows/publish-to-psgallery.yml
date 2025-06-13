@@ -1,11 +1,11 @@
 name: Publish to PSGallery
 run-name: >-
   Publish
-  ${{ github.event_name == 'push' && format('-- {0}', github.event.head_commit.message) 
+  ${{ github.event_name == 'push' && format('— {0}', github.event.head_commit.message) 
     || github.event_name == 'pull_request' && format('PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title) 
     || github.event_name == 'schedule' && 'Scheduled' 
     || github.event_name == 'workflow_dispatch' && 'Manual Dispatch' 
-    || github.event_name == 'workflow_run' && format('from workflow {0}', github.event.workflow_run.display_title)
+    || github.event_name == 'workflow_run' && format('— {0}', github.event.workflow_run.display_title)
     || format('CI Run for commit {0}', github.sha)
   }}
 
@@ -42,5 +42,6 @@ jobs:
 
       - name: Warn if previous step failed
         if: steps.publish-modules.outcome == 'failure'
+        shell: pwsh
         run: |
-          echo "::warning::Step 'publish-modules' failed but was ignored due to continue-on-error."
+          "::warning::Step 'publish-modules' failed but was ignored due to continue-on-error."
