@@ -1,6 +1,6 @@
 Import-Module $PSScriptRoot\.. -Force
 
-Describe 'ConvertFrom-UrlQueryString functionality' -Tags Unit {
+Describe 'ConvertTo-UrlQueryString functionality' -Tags Unit {
     InModuleScope UrlQueryStringParser {
         It 'Converts a complex example dict correctly' {
             $exampleOrderedDict = [ordered] @{
