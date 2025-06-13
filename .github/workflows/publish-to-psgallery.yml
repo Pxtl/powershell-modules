@@ -36,6 +36,11 @@ jobs:
       - name: Publish Module to PowerShell Gallery
         uses: pcgeek86/publish-powershell-module-action@v20
         continue-on-error: true
-        id: publish-module
+        id: publish-modules
         with:
           NuGetApiKey: ${{ secrets.PS_GALLERY_KEY }}
+
+      - name: Warn if previous step failed
+        if: steps.publish-modules.outcome == 'failure'
+        run: |
+          echo "::warning::Step 'publish-modules' failed but was ignored due to continue-on-error."
