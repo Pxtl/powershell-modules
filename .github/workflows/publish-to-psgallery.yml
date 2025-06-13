@@ -1,4 +1,5 @@
 name: Publish to PSGallery
+run-name: Publish commit ${{ github.sha }}
 
 on:
   workflow_run:

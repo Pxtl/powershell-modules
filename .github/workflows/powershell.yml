@@ -8,6 +8,7 @@
 # https://github.com/PowerShell/PSScriptAnalyzer
 
 name: Powershell CI
+run-name: Validate commit ${{ github.sha }}
 
 on:
   push:
