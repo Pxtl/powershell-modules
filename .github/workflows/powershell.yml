@@ -10,7 +10,7 @@
 name: Powershell CI
 run-name: >-
   Validate ${{
-    github.event_name == 'push' && format(': {0}', github.head_commit.message) 
+    github.event_name == 'push' && format(': {0}', github.event.head_commit.message) 
     || github.event_name == 'pull_request' && format('PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title) 
     || github.event_name == 'schedule' && 'Scheduled' 
     || github.event_name == 'workflow_dispatch' && 'Manual Dispatch' 
