@@ -95,7 +95,7 @@ function ConvertFrom-UrlQueryString {
                 $QueryString = $QueryString.Substring(1, $QueryString.Length - 1)
             }
             $queryEntries = $QueryString -split "&"
-            foreach($entry in $queryEntries) {
+            foreach ($entry in $queryEntries) {
                 if ($entry -like '*=*') {
                     $equalsCharIndex = $entry.IndexOf("=")
                     $field = $entry.Substring(0, $equalsCharIndex)
