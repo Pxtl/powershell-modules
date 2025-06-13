@@ -1,12 +1,18 @@
 name: Publish to PSGallery
-run-name: Publish commit ${{ github.sha }}
+run-name: >-
+  Publish
+  ${{ github.event_name == 'push' && format(': {0}', github.head_commit.message) 
+    || github.event_name == 'pull_request' && format('PR #{0}: {1}', github.event.pull_request.number, github.event.pull_request.title) 
+    || github.event_name == 'schedule' && 'Scheduled' 
+    || github.event_name == 'workflow_dispatch' && 'Manual Dispatch' 
+    || 'CI Run'
+  }}
 
 on:
   workflow_run:
     workflows: ["PowerShell CI"]
     types:
       - completed
-
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
