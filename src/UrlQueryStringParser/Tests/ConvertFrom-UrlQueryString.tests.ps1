@@ -3,6 +3,10 @@ Import-Module $PSScriptRoot\.. -Force
 Describe 'ConvertFrom-UrlQueryString functionality' -Tags Unit {
     InModuleScope UrlQueryStringParser {
         BeforeAll {
+            [Diagnostics.CodeAnalysis.SuppressMessageAttribute(
+                <#Category#>'PSUseDeclaredVarsMoreThanAssignments',<#CheckId#>$null,
+                Justification = 'Variable is used in It blocks, rule fails to detect'
+            )]
             $complexExampleQueryString = "?foo=bar&oogy&array=one&baz=quux&array=two&boogy&array=three&empty=&array=four&last"
         }
 
