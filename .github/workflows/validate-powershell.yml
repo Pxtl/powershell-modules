@@ -64,7 +64,7 @@ jobs:
             $testPath = Join-Path $module.FullName 'Tests'
             if (Test-Path $testPath) {
               "Running tests for module: $($module.Name)..."
-              Invoke-Pester -Path $testPath -Output Detailed
+              Invoke-Pester -Path "$testPath\*.tests.ps1" -Output Detailed
             } else {
               "No tests found for module: $($module.Name). Skipping."
             }
