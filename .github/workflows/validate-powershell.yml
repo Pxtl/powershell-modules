@@ -75,7 +75,7 @@ jobs:
         with:
           compose-file: "./src/ADServices/Tests/Integration/adservices-testdocker/docker-compose.yml"
           services: smblds
-          up-flags: wait
+          up-flags: --wait
 
       - name: Run Pester ADServices Integration Tests
         shell: powershell
