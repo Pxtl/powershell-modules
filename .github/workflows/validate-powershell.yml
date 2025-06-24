@@ -1,10 +1,5 @@
-# This workflow uses actions that are not certified by GitHub.
-# They are provided by a third-party and are governed by
-# separate terms of service, privacy policy, and support
-# documentation.
-#
-# https://github.com/microsoft/action-psscriptanalyzer
-# For more information on PSScriptAnalyzer in general, see
+# this workflow uses https://github.com/microsoft/action-psscriptanalyzer . For
+# more information on PSScriptAnalyzer in general, see
 # https://github.com/PowerShell/PSScriptAnalyzer
 
 name: Powershell CI
@@ -56,13 +51,12 @@ jobs:
         with:
           sarif_file: results.sarif
 
-      # Run the tests
       - name: Install Pester
         shell: powershell
         run: |
           Install-Module -Name Pester -Force -Scope CurrentUser
 
-      - name: Run Pester Tests
+      - name: Run Pester Unit Tests
         shell: powershell
         run: |
           $modules = Get-ChildItem -Directory -Path ./src
@@ -75,3 +69,23 @@ jobs:
               "No tests found for module: $($module.Name). Skipping."
             }
           }
+
+      - name: docker compose smblds
+        uses: hoverkraft-tech/compose-action@v1.5.1
+        with:
+          compose-file: "./src/ADServices/Tests/Integration/adservices-testdocker/docker-compose.yml"
+          services: smblds
+          up-flags: wait
+
+      - name: Run Pester ADServices Integration Tests
+        shell: powershell
+        run: |
+          $Server = 'localhost:389'
+          $PSCredential = [PSCredential]::new('Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
+
+          Invoke-Pester -Container (New-PesterContainer -ScriptBlock {
+            $testsPath = '.\src\ADServices\Tests\Integration'
+            ForEach ($testPath in Get-ChildItem $testsPath -Filter "*.tests.ps1") {
+              & $testPath.FullName -Server $Server -PSCredential $PSCredential
+            }
+          })
