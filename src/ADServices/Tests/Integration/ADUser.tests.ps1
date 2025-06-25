@@ -75,5 +75,5 @@ Describe 'ADUser' -Tags Integration {
         & "$PSScriptRoot\Shared\Clear-TestObjects.ps1"
     }
 
-    #TODO Test by other Identity types, Set dict, test -Filter, automate clean-up.
+    #TODO Test by other Identity types, Set dict, test -LDAPFilter, automate clean-up.
 }

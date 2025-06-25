@@ -11,7 +11,7 @@ process {
     $BuiltInUserDistinguishedNames = & "$PSScriptRoot\Get-BuiltInUserDistinguishedNames.ps1"
 
     # Cleanup ADUsers.
-    Get-ADUser @ConnectionParam -Filter 'sAMAccountName=*' |
+    Get-ADUser @ConnectionParam -LDAPFilter 'sAMAccountName=*' |
         Select-Object -ExpandProperty distinguishedName |
         Where-Object { 
             ($_ -NotIn $BuiltInUserDistinguishedNames) -and ($_ -notlike '*OU=Domain Controllers,DC=samdom,DC=example,DC=com')
@@ -24,7 +24,7 @@ process {
     $BuiltInGroupDistinguishedNames = & "$PSScriptRoot\Get-BuiltInGroupDistinguishedNames.ps1"
 
     # Cleanup ADGroups.
-    Get-ADGroup @ConnectionParam -Filter 'sAMAccountName=*' |
+    Get-ADGroup @ConnectionParam -LDAPFilter 'sAMAccountName=*' |
         Select-Object -ExpandProperty distinguishedName |
         Where-Object {
             $_ -NotIn $BuiltInGroupDistinguishedNames
@@ -39,7 +39,7 @@ process {
     )
     
     # Cleanup ADOrganizationalUnits.
-    Get-ADOrganizationalUnit @ConnectionParam -Filter 'distinguishedName=*' |
+    Get-ADOrganizationalUnit @ConnectionParam -LDAPFilter 'distinguishedName=*' |
         Select-Object -ExpandProperty distinguishedName |
         Where-Object { 
             $_ -NotIn $BuiltInOrganizationalUnitDistinguishedNames

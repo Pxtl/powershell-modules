@@ -21,10 +21,10 @@ function Get-ADObject {
         [Parameter(Position=0)]
         [string] $Type,
 
-        # The filter to search for entries. Uses normal AD Search syntax, *not*
+        # The filter to search for entries. Uses normal LDAP Search syntax, *not*
         # PS ActiveDirectory search.
         [Parameter(Mandatory, ValueFromPipeline, ParameterSetName='Filter')]
-        [string] $Filter,
+        [string] $LDAPFilter,
 
         # The identity of the entry to retrieve. Can be sAMAcountName, SID, LDAP
         # path, or distinguished name.
@@ -48,13 +48,13 @@ function Get-ADObject {
     }
     process {
         if ($Identity) {
-            $Filter = Convert-ADIdentityToFilter -Identity $Identity
+            $LDAPFilter = Convert-ADIdentityToFilter -Identity $Identity
         }
 
         if ($Type) {
-            $searcher.Filter = "(&(objectClass=$Type)($Filter))"
+            $searcher.Filter = "(&(objectClass=$Type)($LDAPFilter))"
         } else {
-            $searcher.Filter = "($Filter)"
+            $searcher.Filter = "($LDAPFilter)"
         }
         Write-Verbose "Searching for '$($searcher.Filter)'"
         $searchResult = $searcher.FindAll()
@@ -130,7 +130,7 @@ function New-ADObject {
             Write-Verbose "$($MyInvocation.MyCommand): $targetSummary"
             $newEntry = $baseEntry.Children.Add("$DistinguishedComponenentType=$Name", $Type)
             if ($DoSAMAccountName) {
-                $existing = Get-ADObject -Filter "sAMAccountName=$Name" -Server $Server -Credential $Credential
+                $existing = Get-ADObject -LDAPFilter "sAMAccountName=$Name" -Server $Server -Credential $Credential
                 if (($existing | Measure-Object).Count) {
                     # objectClass contains the full class inheritance hierarchy so we only want the final, most-specific entry.
                     $existingClass = $existing.objectClass | Select-Object -Last 1

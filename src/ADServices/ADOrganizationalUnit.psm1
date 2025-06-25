@@ -19,7 +19,7 @@ function Get-ADOrganizationalUnit {
         # The filter to search for OrganizationalUnits. Uses normal AD Search
         # syntax, *not* PS ActiveDirectory search.
         [Parameter(Mandatory, ValueFromPipeline, ParameterSetName='Filter')]
-        [string] $Filter,
+        [string] $LDAPFilter,
 
         # The identity of the OrganizationalUnit to retrieve. Can be SID, LDAP
         # path, or distinguished name.

@@ -15,10 +15,10 @@ function Get-ADGroup {
     [OutputType([DirectoryServices.DirectoryEntry])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
     param (
-        # The filter to search for groups. Uses normal AD Search syntax, *not*
+        # The filter to search for groups. Uses normal LDAP Search syntax, *not*
         # PS ActiveDirectory search.
         [Parameter(Mandatory, ValueFromPipeline, ParameterSetName='Filter')]
-        [string] $Filter,
+        [string] $LDAPFilter,
 
         # The identity of the group to retrieve. Can be sAMAcountName, SID, LDAP
         # path, or distinguished name.

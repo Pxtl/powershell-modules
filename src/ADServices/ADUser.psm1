@@ -17,10 +17,10 @@ function Get-ADUser {
     [OutputType([DirectoryServices.DirectoryEntry])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
     param (
-        # The filter to search for users. Uses normal AD Search syntax, *not*
+        # The filter to search for users. Uses normal LDAP Search syntax, *not*
         # PS ActiveDirectory search.
         [Parameter(Mandatory, ValueFromPipeline, ParameterSetName='Filter')]
-        [string] $Filter,
+        [string] $LDAPFilter,
 
         # The identity of the user to retrieve. Can be sAMAcountName, SID, LDAP
         # path, or distinguished name.
