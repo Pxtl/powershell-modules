@@ -35,7 +35,7 @@ jobs:
       # Runs a single command using the runners shell
       - name: Publish Module to PowerShell Gallery
         #formerly pcgeek86/publish-powershell-module-action@v20
-        uses: Pxtl/publish-powershell-module-action@v0.1
+        uses: Pxtl/publish-powershell-module-action@v0.2
         continue-on-error: true
         id: publish-modules
         with:
