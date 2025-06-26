@@ -100,6 +100,51 @@ Describe 'ADGroup Membership' -Tags Integration {
         $loadedADGroup.member.Count | Should -Be 1
     }
 
+    It 'Can Get-ADGroupMember' {
+        # prepare
+        $groupCode = 4
+        $testGroupName = "parentGroup$groupCode"
+        $newGroup = New-ADGroup @ConnectionParam -Name $testGroupName -Verbose:$VerbosePreference -PassThru
+        $newGroup.member.Count | Should -Be 0
+
+        $testUser1Name = "childUser1ForGroup$groupCode"
+        $newUser1 = New-ADUser @ConnectionParam -Name $testUser1Name -Verbose:$VerbosePreference -PassThru
+        $testUser2Name = "childUser2ForGroup$groupCode"
+        $newUser2 = New-ADUser @ConnectionParam -Name $testUser2Name -Verbose:$VerbosePreference -PassThru
+        $testChildGroupName = "childGroup$groupCode"
+        $testChildGroup = New-ADGroup @ConnectionParam -Name $testChildGroupName -Verbose:$VerbosePreference -PassThru
+        $testGrandchildUserName = "grandchildUser1ForGroup$groupCode"
+        $grandchildUser = New-ADUser @ConnectionParam -Name $testGrandchildUserName -Verbose:$VerbosePreference -PassThru
+
+        # act
+        Add-ADGroupMember @ConnectionParam -Identity $newGroup.distinguishedName -Members $newUser1.distinguishedName, $newUser2.distinguishedName, $testChildGroup.distinguishedName -Verbose:$VerbosePreference
+        Add-ADGroupMember @ConnectionParam -Identity $testChildGroup.distinguishedName -Members $grandchildUser.distinguishedName -Verbose:$VerbosePreference
+
+        # examine
+
+        ## test fetch from AD
+        $members = Get-ADGroupMember @ConnectionParam -Identity $testGroupName -Verbose:$VerbosePreference
+        $memberDNs = $members | ForEach-Object {
+            $_.distinguishedName.Value
+        }
+        $memberDNs | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $memberDNs | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $memberDNs | Should -Contain "CN=childGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $memberDNs.Count | Should -Be 3
+
+        ## test fetch from AD recursively
+        $memberDNs = Get-ADGroupMember @ConnectionParam -Identity $testGroupName -Verbose:$VerbosePreference -Recursive | 
+            ForEach-Object {
+                $_.distinguishedName.Value
+            }
+        $memberDNs | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $memberDNs | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $memberDNs | Should -Contain "CN=childGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $memberDNs | Should -Contain "CN=grandchildUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $memberDNs.Count | Should -Be 4
+    }
+
+
     AfterEach {
         Write-Verbose "Cleanup in $($MyInvocation.MyCommand.ScriptBlock.File | Split-Path -Leaf)."
         & "$PSScriptRoot\Shared\Clear-TestObjects.ps1"

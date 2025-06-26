@@ -79,6 +79,7 @@ function Remove-ADGroupMember {
         Nothing, unless PassThru is set in which case it returns the Group as a
         [DirectoryServices.DirectoryEntry].
     #>
+    [OutputType([DirectoryServices.DirectoryEntry])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # Identity of the group to add members to.
@@ -131,6 +132,49 @@ function Remove-ADGroupMember {
         if ($PassThru) {
             # Output
             $group
+        }
+    }
+}
+
+
+function Get-ADGroupMember {
+    <#
+    .SYNOPSIS
+        Get Member ADObjects of a group.
+    .OUTPUTS
+        [DirectoryServices.DirectoryEntry] of the ADObjects within the group. If the group does not exist, returns Nothing.
+    #>
+    [OutputType([DirectoryServices.DirectoryEntry])]
+    [CmdletBinding()]
+    param(
+        # Identity of the group.
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [string] $Identity,
+
+        # The domain controller to query.
+        [Parameter()]
+        [string] $Server = $null,
+
+        # Credentials for the domain controller.
+        [Parameter()]
+        [PSCredential] $Credential = $null,
+
+        [switch] $Recursive
+    )
+    process {
+        $group = Get-ADGroup -Identity $Identity -Server $Server -Credential $Credential -Verbose:$VerbosePreference
+        if (-not $group) {
+            return
+        }
+        $groupDN = $group.distinguishedName
+        $members = Get-ADObject -LDAPFilter "(memberOf=$groupDN)" -Server $Server -Credential $Credential -Verbose:$VerbosePreference
+        
+        # output
+        $members
+        if ($Recursive) {
+            $members | Foreach-Object {
+                Get-ADGroupMember -Identity $_.distinguishedName -Server $Server -Credential $Credential -Recursive
+            }
         }
     }
 }
