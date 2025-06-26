@@ -35,7 +35,7 @@ jobs:
       # Runs a single command using the runners shell
       - name: Publish Module to PowerShell Gallery
         #formerly pcgeek86/publish-powershell-module-action@v20
-        uses: Pxtl/publish-powershell-module-action@v0.2
+        uses: Pxtl/publish-powershell-module-action@v0.3
         id: publish-modules
         with:
           NuGetApiKey: ${{ secrets.PS_GALLERY_KEY }}
