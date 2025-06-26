@@ -33,6 +33,8 @@ instead of requiring that the user install RSAT.
         '*-ADOrganizationalUnit'
     )
 
+    CompatiblePSEditions = @('Desktop')
+
     PrivateData = @{
         PSData = @{
             Tags = 'ActiveDirectory', 'DirectoryServices', 'RSAT'
