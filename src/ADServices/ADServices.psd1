@@ -1,5 +1,5 @@
 @{  
-    ModuleVersion = '0.1.0'
+    ModuleVersion = '0.1.1'
     GUID = 'c29c8e32-38a3-4ed4-acc3-11ad44bcab3c'
     Author = 'Martin C Zarate (AKA Pxtl)'
     Copyright = '2025, Martin C Zarate'
@@ -14,12 +14,23 @@ instead of requiring that the user install RSAT.
     PowerShellVersion = '5.1'
 
     NestedModules = @(
+        '.\Shared\ADDirectoryEntry.psm1'
+        '.\Shared\ADHelpers.psm1'
         'ADObject.psm1'
         'ADUser.psm1'
         'ADAccount.psm1'
         'ADGroup.psm1'
         'ADGroupMember.psm1'
         'ADOrganizationalUnit.psm1'
+    )
+
+    FunctionsToExport = @(
+        '*-ADObject'
+        '*-ADUser'
+        '*-ADAccount'
+        '*-ADGroup'
+        '*-ADGroupMember'
+        '*-ADOrganizationalUnit'
     )
 
     PrivateData = @{
@@ -30,6 +41,9 @@ instead of requiring that the user install RSAT.
             ProjectUri = 'https://github.com/Pxtl/powershell-modules'
             # IconUri = ''
             ReleaseNotes = @'
+v0.1.1
+- hide private functions properly
+
 v0.1.0
 - Initial Version
 '@

@@ -1,7 +1,6 @@
-Import-Module "$PSScriptRoot\Shared\SharedMetaModule.psm1"
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
-
+. $PSScriptRoot\Shared\Variables.ps1
 
 function Get-ADUser {
     <#
@@ -224,21 +223,7 @@ function Test-ADUser {
     }
 }
 
-
-function Update-ADUserEntry {
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [DirectoryServices.DirectoryEntry] $Entry
-    )
-    process {
-        Update-DirectoryEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -NotePropertyName Enabled -TrueValue $false -FalseValue $true
-    }
-}
-
-
-Export-ModuleMember -Function *-ADUser, *-ADUserEntry
-
-
+#private
 function Set-ADUserEntry {
     [Diagnostics.CodeAnalysis.SuppressMessage("PSShouldProcess","",Scope="Function")] # -WhatIf passed through to ADObject func
     [CmdletBinding(SupportsShouldProcess)]

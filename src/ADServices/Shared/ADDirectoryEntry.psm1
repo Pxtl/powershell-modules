@@ -147,6 +147,3 @@ function Set-DirectoryEntryPropertyTable {
         }
     }
 }
-
-
-Export-ModuleMember -Function *-DirectoryEntryFlag, *-DirectoryEntryPropertyTable

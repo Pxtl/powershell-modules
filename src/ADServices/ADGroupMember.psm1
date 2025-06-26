@@ -1,4 +1,3 @@
-Import-Module "$PSScriptRoot\Shared\SharedMetaModule.psm1" -Verbose:$false
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
 

@@ -1,6 +1,6 @@
-Import-Module "$PSScriptRoot\Shared\SharedMetaModule.psm1" -Verbose:$false
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
+. $PSScriptRoot\Shared\Variables.ps1
 
 
 function Get-ADGroup {
@@ -242,9 +242,7 @@ function Test-ADGroup {
 }
 
 
-Export-ModuleMember -Function *-ADGroup
-
-
+#private
 function Update-ADGroupEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -260,6 +258,7 @@ function Update-ADGroupEntry {
 }
 
 
+#private
 function Set-ADGroupEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]

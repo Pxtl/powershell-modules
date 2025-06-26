@@ -274,6 +274,3 @@ function Test-ADObject {
         $null -ne $entry
     }
 }
-
-
-Export-ModuleMember -Function *-ADObject

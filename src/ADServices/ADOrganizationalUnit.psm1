@@ -1,4 +1,3 @@
-Import-Module "$PSScriptRoot\Shared\SharedMetaModule.psm1" -Verbose:$false
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
 
@@ -219,9 +218,7 @@ function Test-ADOrganizationalUnit {
 }
 
 
-Export-ModuleMember -Function *-ADOrganizationalUnit
-
-
+#private
 function Update-ADOrganizationalUnitEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -233,6 +230,7 @@ function Update-ADOrganizationalUnitEntry {
 }
 
 
+#private
 function Set-ADOrganizationalUnitEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
