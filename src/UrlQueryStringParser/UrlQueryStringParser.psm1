@@ -224,6 +224,10 @@ function ConvertTo-RegularExpression {
 $urlCommonDecodes = @{
     '%2F' = '/'
     '%20' = ' '
+    '%21' = '!' # pwsh-only
+    '%28' = '(' # pwsh-only
+    '%29' = ')' # pwsh-only
+    '%2A' = '*' # pwsh-only
     '%40' = '@'
     '%5B' = '['
     '%5D' = ']'
