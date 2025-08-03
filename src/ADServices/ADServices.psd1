@@ -17,6 +17,7 @@ feature-incomplete at this time.  Also, unfortunately
     NestedModules = @(
         '.\Shared\ADDirectoryEntry.psm1'
         '.\Shared\ADHelpers.psm1'
+        'ADRootDSE.psm1'
         'ADObject.psm1'
         'ADUser.psm1'
         'ADAccount.psm1'
@@ -26,6 +27,7 @@ feature-incomplete at this time.  Also, unfortunately
     )
 
     FunctionsToExport = @(
+        '*-ADRootDSE'
         '*-ADObject'
         '*-ADUser'
         '*-ADAccount'
