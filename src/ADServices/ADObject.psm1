@@ -1,4 +1,5 @@
 Import-Module "$PSScriptRoot\Shared\ADHelpers.psm1" -Verbose:$false
+Import-Module "$PSScriptRoot\ADRootDSE.psm1" -Verbose:$false
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
 
@@ -6,9 +7,9 @@ $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
 function Get-ADObject {
     <#
     .SYNOPSIS
-        Retrieves an LDAP DirectoryEntry.
+        Retrieves an LDAP entry.
     .DESCRIPTION
-        Retrieves an LDAP DirectoryEntry by their identity, which can be a
+        Retrieves an LDAP entry by their identity, which can be a
         distinguished name, GUID, SID, or sAMAccountName.  
     .OUTPUTS
         [System.DirectoryServices.DirectoryEntry]
@@ -44,7 +45,10 @@ function Get-ADObject {
         [PSCredential] $Credential
     )
     begin {
-        $searcher = Get-LdapSearcher -SearchBase $SearchBase -Server $Server -Credential $Credential -Verbose:$VerbosePreference
+        if (-not $SearchBase) {
+            $adroot = Get-ADRootDSE -Server $Server -Credential $Credential -Verbose:$VerbosePreference
+            $SearchBase = $adRoot.defaultnamingcontext
+        }
     }
     process {
         if ($Identity) {
@@ -52,22 +56,22 @@ function Get-ADObject {
         }
 
         if ($Type) {
-            $searcher.Filter = "(&(objectClass=$Type)($LDAPFilter))"
+            $LDAPFilter = "(&(objectClass=$Type)($LDAPFilter))"
         } else {
-            $searcher.Filter = "($LDAPFilter)"
+            $LDAPFilter = "($LDAPFilter)"
         }
-        Write-Verbose "Searching for '$($searcher.Filter)'"
-        $searchResult = $searcher.FindAll()
+        Write-Verbose "Searching for '$($LDAPFilter)'..."
+        $searchResult = Invoke-SearchRequest $LDAPFilter $SearchBase $Server $Credential
+
         if ($Identity) {
             $resultCount = $searchResult | Measure-Object | Select-Object -ExpandProperty Count
             if ($resultCount -gt 1) {
                 throw [InvalidOperationException]::new("Identity value '$Identity' returned multiple values of class '$Type', which isn't supposed to be possible.")
             }
         }
-        foreach ($resultItem in $searchResult) {
-            # output
-            $resultItem.GetDirectoryEntry()
-        }
+
+        # output
+        $searchResult
     }
 }
 

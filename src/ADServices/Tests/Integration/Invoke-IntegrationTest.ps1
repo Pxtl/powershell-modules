@@ -1,3 +1,4 @@
+using module @{ModuleName='Pester'; ModuleVersion='5.7.1'} # need Pester v5.7.1 for New-PesterContainer
 [CmdletBinding()]
 param (
     [Parameter()]

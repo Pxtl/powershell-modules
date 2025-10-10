@@ -1,7 +1,6 @@
-
+Import-Module "$PSScriptRoot\Shared\ADHelpers.psm1" -Verbose:$false
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
-Add-Type -AssemblyName 'System.DirectoryServices.Protocols'
 
 function Get-ADRootDSE {
     <#
@@ -10,42 +9,25 @@ function Get-ADRootDSE {
     #>
     param (
         # The domain controller to query.
-        [Parameter()]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [string] $Server,
 
         # Credentials for the domain controller.
-        [Parameter()]
+        [Parameter(ValueFromPipelineByPropertyName)]
         [PSCredential] $Credential
     )
     process {
-        $directoryIdentifier = [DirectoryServices.Protocols.LdapDirectoryIdentifier]::new($Server)
-        $networkCredential = if ($Credential) {
-            $Credential.GetNetworkCredential()
-        }
-        $ldapConnection = [DirectoryServices.Protocols.LdapConnection]::new(
-            $directoryIdentifier, $networkCredential
-        )
-        $ldapConnection.Bind()
-
         $searchRequest = [DirectoryServices.Protocols.SearchRequest]::new(
             $null, # DN
             '(objectClass=*)', # filter
             'Base', # mode
             '*' # attributes
         )
+        $ldapConnection = New-LDAPConnection $Server $Credential
 
         $response = $ldapConnection.SendRequest($searchRequest)
-        foreach ($entry in $response.Entries) {
-            $table = @{}
-            foreach ($key in $entry.Attributes.Keys | Sort-Object) {
-                $valueCollection = $entry.Attributes[$key]
-                if ($valueCollection.Count -gt 1) {
-                    $table[$key] = $valueCollection | ForEach-Object { $_ }
-                } else {
-                    $table[$key] = $valueCollection[0]
-                }
-            }
-            [PSCustomObject] $table
-        }
+
+        # output
+        ConvertFrom-LDAPSearchResponse $response
     }
 }
