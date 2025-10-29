@@ -6,11 +6,11 @@ Add-Type -AssemblyName 'System.DirectoryServices.Protocols'
 
 
 function Invoke-SearchRequest {
-    [OutputType([PSCustumObject])]
-    [CnmdletBinding()]
+    [OutputType([PSCustomObject])]
+    [CmdletBinding()]
     param (
         # The filter to search for entries. Uses normal LDAP Search syntax, *not*
-        # PS ActiveDirectory search.
+        # PS ActiveDirctory search.
         [string] $LDAPFilter,
         
         # The base path to search within on the given server
@@ -29,8 +29,8 @@ function Invoke-SearchRequest {
         $ldapConnection = New-LDAPConnection $Server $Credential
 
         $searchRequest = [DirectoryServices.Protocols.SearchRequest]::new(
-            $null, # DN
-            '(objectClass=*)', # filter
+            $SearchBase, # DN
+            $LDAPFilter, # filter
             'Base', # mode
             '*' # attributes
         )
@@ -47,6 +47,7 @@ function ConvertFrom-LDAPSearchResponse {
         Convert LDAP request response object into a PSCustomObject with all the members.
     #>
     param (
+        [Parameter(ValueFromPipeline)]
         [DirectoryServices.Protocols.SearchResponse] $response
     )
     process {

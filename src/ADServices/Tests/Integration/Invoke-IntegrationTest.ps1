@@ -1,16 +1,17 @@
 using module @{ModuleName='Pester'; ModuleVersion='5.7.1'} # need Pester v5.7.1 for New-PesterContainer
+
 [CmdletBinding()]
 param (
     [Parameter()]
     [string] $Server = 'localhost:389',
 
     [Parameter()]
-    [PSCredential] $PSCredential
+    [Management.Automation.PSCredential] $PSCredential
 )
 
 if (-not $PSCredential) {
     # default credentials for smblds
-    $PSCredential = [PSCredential]::new('Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
+    $PSCredential = [Management.Automation.PSCredential]::new('Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
 }
 
 # prepare
