@@ -12,10 +12,10 @@ function Get-ADObject {
         Retrieves an LDAP entry by their identity, which can be a
         distinguished name, GUID, SID, or sAMAccountName.  
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry]
+        [System.PSCustomObject]
         # $null if not found.
     #>
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
     param (
         # The ObjectClass to search for.
@@ -60,7 +60,7 @@ function Get-ADObject {
         } else {
             $LDAPFilter = "($LDAPFilter)"
         }
-        Write-Verbose "Searching for '$($LDAPFilter)'..."
+        Write-Verbose "Searching for '$LDAPFilter' under '$SearchBase'..."
         $searchResult = Invoke-SearchRequest $LDAPFilter $SearchBase $Server $Credential
 
         if ($Identity) {
@@ -79,13 +79,13 @@ function Get-ADObject {
 function New-ADObject {
     <#
     .SYNOPSIS
-        Creates a new LDAP DirectoryEntry.
+        Creates a new LDAP entry.
     .DESCRIPTION
-        Creates a new LDAP DirectoryEntry with the specified name.
+        Creates a new LDAP entry with the specified name.
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry] when Passthru is enabled.
+        [PSCustomObject] when Passthru is enabled.
     #>
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName='Path')]
     param (
         # The ObjectClass of the type to create.
@@ -121,32 +121,45 @@ function New-ADObject {
         [Switch] $DoSAMAccountName
     )
     begin {
-        $searcher = Get-LdapSearcher -Server $Server -Credential $Credential -SearchBase $Path -DefaultRelativeBase $DefaultRelativePath -Verbose:$VerbosePreference
-        $baseEntry = $searcher.SearchRoot
-    }
-    process {
-        if (-not $baseEntry.distinguishedName) {
+        if (-not $Path) {
+            # if Path is not provided, fetch the Root DSE so the DefaultRelativePath can be tacked-on. 
+            $adRootDSE = Get-ADRootDSE -Server $Server -Credential $Credential
+            $Path = $adRootDSE.defaultnamingcontext
+            if ($DefaultRelativePath) {
+                $Path = "$DefaultRelativePath,$Path"
+            }
+        }
+        if (-not (Test-ADObject -Identity $Path -Server $Server -Credential $Credential)) {
             Write-Error "Parent container node '$(if ($Path) { $Path } else { $DefaultRelativePath })' not found."
         }
-
-        $targetSummary = "$Type '$Name' in container '$($baseEntry.distinguishedName)'"
+    }
+    process {
+        $targetSummary = "$Type '$Name' in container '$Path'"
         if ($PSCmdlet.ShouldProcess($targetSummary)) {
             Write-Verbose "$($MyInvocation.MyCommand): $targetSummary"
-            $newEntry = $baseEntry.Children.Add("$DistinguishedComponenentType=$Name", $Type)
+
+            $newDistinguishedName = "$DistinguishedComponenentType=$Name,$Path"
+            $request = [DirectoryServices.Protocols.AddRequest]::new($newDistinguishedName, $Type)
+
             if ($DoSAMAccountName) {
                 $existing = Get-ADObject -LDAPFilter "sAMAccountName=$Name" -Server $Server -Credential $Credential
                 if (($existing | Measure-Object).Count) {
                     # objectClass contains the full class inheritance hierarchy so we only want the final, most-specific entry.
                     $existingClass = $existing.objectClass | Select-Object -Last 1
                     Write-Error "There is already an existing entry '$($existing.distinguishedName)' of type '$($existingClass)'."
-                } else {
-                    $newEntry.Properties['sAMAccountName'].Value = $Name
                 }
             }
-            $newEntry.CommitChanges();
-            
-            #output
-            $newEntry
+
+            $ldapConnection.SendRequest($request) | Out-Null
+
+            if ($DoSAMAccountName) {
+                $attributes = @{
+                    'sAMAccountName' = $Name
+                }
+                Set-ADObject -Type $Type -Identity $newDistinguishedName -OtherAttributes $attributes -Server $Server -Credential $Credential
+            }
+
+            Get-ADObject -Type $Type -Identity $newDistinguishedName -Server $Server -Credential $Credential
         }
     }
 }
@@ -155,24 +168,24 @@ function New-ADObject {
 function Set-ADObject {
     <#
     .SYNOPSIS
-        Modifies an LDAP DirectoryEntry.
+        Modifies an LDAP entry on the server.
     .DESCRIPTION
-        Modifies an LDAP DirectoryEntry with the specified properties.
+        Modifies an LDAP entry on the server with the specified properties.
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry] when Passthru is enabled.
+        [System.PSCustomObject] when Passthru is enabled.
     #>
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # The ObjectClass to modify.
         [Parameter(Position=0)]
         [string] $Type,
 
-        # The identity of the LDAP DirectoryEntry to modify.
+        # The identity of the LDAP entry to modify.
         [Parameter(Mandatory, ValueFromPipeline, Position=1)]
         [string] $Identity,
 
-        # A hashtable of properties to set on the LDAP DirectoryEntry.
+        # A hashtable of properties to set on the LDAP entry.
         [Parameter()]
         [hashtable] $OtherAttributes,
 
@@ -182,18 +195,42 @@ function Set-ADObject {
 
         # Credentials for the domain controller.
         [Parameter()]
-        [PSCredential] $Credential = $null
+        [PSCredential] $Credential = $null,
+
+        [switch] $PassThru
     )
     process {
         if ($PSCmdlet.ShouldProcess($Identity, "Modifying $Type")) {
             $entry = Get-ADObject $Type -Identity $Identity -Server $Server -Credential $Credential
-            if ($OtherAttributes) {
-                Set-DirectoryEntryPropertyTable $entry $OtherAttributes
-                $entry.CommitChanges()
+            if (($entry | Measure-Object).Count -eq 1) {
+                Write-Verbose "Modifying $Type '$($entry.distinguishedName)'."
+                $ldapConnection = New-LDAPConnection $Server $Credential
+                $attributeModifications = [Collections.ArrayList]::new()
+                foreach ($attribute in $OtherAttributes.GetEnumerator()) {
+                    $attributeModification = [DirectoryServices.Protocols.DirectoryAttributeModification]::new()
+                    $attributeModification.Name = $attribute.Key
+                    $attributeModification.Add($attribute.Value) | Out-Null
+                    $attributeModification.Operation = [DirectoryServices.Protocols.DirectoryAttributeOperation]::Replace
+                    
+                    $attributeModifications.Add($attributeModification) | Out-Null
+                }
+                $modifyRequest = [DirectoryServices.Protocols.ModifyRequest]::new(
+                    $entry.distinguishedName,
+                    $attributeModifications
+                )
+
+                $ldapConnection.SendRequest($modifyRequest) | Out-Null
+                
+                if ($PassThru) {
+                    # output
+                    Get-ADObject $Type -Identity $Identity -Server $Server -Credential $Credential
+                }
+
+            } elseif (-not $entry) {
+                Write-Error "Could not find $Type '$Identity', cannot remove."
+            } else {
+                Write-Error "Multiple entries of type $Type found matching identity '$Identity', cannot remove."
             }
-            
-            # output
-            $entry
         }
     }
 }
@@ -202,9 +239,9 @@ function Set-ADObject {
 function Remove-ADObject {
     <#
     .SYNOPSIS
-        Removes an LDAP DirectoryEntry.
+        Removes an LDAP entry.
     .DESCRIPTION
-        Removes an LDAP DirectoryEntry by their identity.
+        Removes an LDAP entry by their identity.
     .OUTPUTS
         None
     #>
@@ -214,7 +251,7 @@ function Remove-ADObject {
         [Parameter(Position=0)]
         [string] $Type,
 
-        # The identity of the LDAP DirectoryEntry to remove.
+        # The identity of the LDAP entry to remove.
         [Parameter(Mandatory, ValueFromPipeline, Position=1)]
         [string] $Identity,
 
@@ -231,7 +268,13 @@ function Remove-ADObject {
             $entry = Get-ADObject $Type -Identity $Identity -Server $Server -Credential $Credential
             if (($entry | Measure-Object).Count -eq 1) {
                 Write-Verbose "Removing $Type '$($entry.distinguishedName)'."
-                $entry.DeleteTree()
+                $ldapConnection = New-LDAPConnection $Server $Credential
+
+                $deleteRequest = [DirectoryServices.Protocols.DeleteRequest]::new(
+                    $entry.distinguishedName
+                )
+
+                $ldapConnection.SendRequest($deleteRequest) | Out-Null
 
             } elseif (-not $entry) {
                 Write-Error "Could not find $Type '$Identity', cannot remove."
@@ -246,9 +289,9 @@ function Remove-ADObject {
 function Test-ADObject {
     <#
     .SYNOPSIS
-        Tests if an LDAP DirectoryEntry exists.
+        Tests if an LDAP entry exists.
     .DESCRIPTION
-        Tests if an LDAP DirectoryEntry exists by their identity.
+        Tests if an LDAP entry exists by their identity.
     .OUTPUTS
         [bool]
     #>
@@ -259,7 +302,7 @@ function Test-ADObject {
         [Parameter(Position=0)]
         [string] $Type,
 
-        # The identity of the LDAP DirectoryEntry to test.
+        # The identity of the LDAP entry to test.
         [Parameter(Mandatory, ValueFromPipeline, Position=1)]
         [string] $Identity,
 

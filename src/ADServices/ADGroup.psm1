@@ -249,11 +249,11 @@ function Update-ADGroupEntry {
         [DirectoryServices.DirectoryEntry] $Entry
     )
     process {
-        Update-DirectoryEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -NotePropertyName GroupScope -TrueValue Global
-        Update-DirectoryEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -NotePropertyName GroupScope -TrueValue DomainLocal
-        Update-DirectoryEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -NotePropertyName GroupScope -TrueValue Universal
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -NotePropertyName GroupScope -TrueValue Global
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -NotePropertyName GroupScope -TrueValue DomainLocal
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -NotePropertyName GroupScope -TrueValue Universal
 
-        Update-DirectoryEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -NotePropertyName GroupCategory -TrueValue Security -FalseValue Distribution
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -NotePropertyName GroupCategory -TrueValue Security -FalseValue Distribution
     }
 }
 
@@ -281,21 +281,21 @@ function Set-ADGroupEntry {
             $null
         }
         if ($null -ne $securityEnabled) {
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -Value $securityEnabled
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -Value $securityEnabled
         }
 
         if ($GroupScope -eq 'Global') {
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $true
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $true
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false
         } elseif ($GroupScope -eq 'DomainLocal') {
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $true
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $true
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false
         } elseif ($GroupScope -eq 'Universal') {
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false
-            Set-DirectoryEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $true
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $true
         }
     }
 }

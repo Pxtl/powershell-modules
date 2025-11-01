@@ -16,7 +16,7 @@ function Enable-ADAccount {
         if ($entry) {
             if ($PSCmdlet.ShouldProcess($Identity, "Enable-ADAccount")) {
                 Write-Verbose "Enabling user account '$Identity'."
-                Set-DirectoryEntryFlag $entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED $false -Verbose:$VerbosePreference
+                Set-LDAPEntryFlag $entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED $false -Verbose:$VerbosePreference
                 $entry.CommitChanges()
             }
             if ($PassThru) {
@@ -46,7 +46,7 @@ function Disable-ADAccount {
         if ($entry) {
             if ($PSCmdlet.ShouldProcess($Identity, "Disable-ADAccount")) {
                 Write-Verbose "Disabling user account '$Identity'."
-                Set-DirectoryEntryFlag $entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED $true -Verbose:$VerbosePreference
+                Set-LDAPEntryFlag $entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED $true -Verbose:$VerbosePreference
                 $entry.CommitChanges()
             }
             if ($PassThru) {

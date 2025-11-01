@@ -20,7 +20,7 @@ docker compose -f "$PSScriptRoot\adservices-testdocker\docker-compose.yml" up -d
 # refresh module version in memory then unload it to prevent accidental memory of old versions of module.
 Import-Module $PSScriptRoot\..\..\ADObject.psm1 -Force -Verbose:$false | Remove-Module
 Import-Module $PSScriptRoot\..\..\Shared\ADHelpers.psm1 -Force -Verbose:$false | Remove-Module
-Import-Module $PSScriptRoot\..\..\Shared\ADDirectoryEntry.psm1 -Force -Verbose:$false | Remove-Module
+Import-Module $PSScriptRoot\..\..\Shared\LDAPEntry.psm1 -Force -Verbose:$false | Remove-Module
 
 # act
 Invoke-Pester -Container (New-PesterContainer -ScriptBlock {

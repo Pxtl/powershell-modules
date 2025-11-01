@@ -53,10 +53,10 @@ function New-ADUser {
     .DESCRIPTION
         Creates a new Active Directory user with the specified name.       
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry]
+        [PSCustomObject]
     #>
     [Diagnostics.CodeAnalysis.SuppressMessage("PSShouldProcess","",Scope="Function")] # -WhatIf passed through to ADObject func
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # The name of the new user.
@@ -105,11 +105,10 @@ function New-ADUser {
 
         if (($null -ne $Enabled) -or ($OtherAttributes)) {
             Set-ADUserEntry $entry -Enabled $Enabled -OtherAttributes $OtherAttributes
-            $entry.CommitChanges()
         }
         
         if ($PassThru) {
-            Update-ADUserEntry $entry
+            $entry = Get-ADUser -Identity $entry.distinguishedName -Server $Server -Credential $Credential
 
             # output
             $entry
@@ -229,7 +228,7 @@ function Set-ADUserEntry {
     [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [DirectoryServices.DirectoryEntry] $Entry,
+        [PSCustomObject] $Entry,
 
         [Parameter()]
         [Nullable[bool]] $Enabled,
@@ -239,10 +238,10 @@ function Set-ADUserEntry {
     )
     process {
         if ($null -ne $Enabled) {
-            Set-DirectoryEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -Value $Enabled -WhatIf:$WhatIfPreference
+            Set-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -Value $Enabled -WhatIf:$WhatIfPreference
         }
         if ($OtherAttributes) {
-            Set-DirectoryEntryPropertyTable $Entry $OtherAttributes -WhatIf:$WhatIfPreference
+            Set-LDAPEntryPropertyTable $Entry $OtherAttributes -WhatIf:$WhatIfPreference
         }
     }
 }

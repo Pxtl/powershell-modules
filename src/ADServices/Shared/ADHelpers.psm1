@@ -31,13 +31,13 @@ function Invoke-SearchRequest {
         $searchRequest = [DirectoryServices.Protocols.SearchRequest]::new(
             $SearchBase, # DN
             $LDAPFilter, # filter
-            'Base', # mode
+            'Subtree', # mode
             '*' # attributes
         )
 
         $ldapConnection.SendRequest($searchRequest) |
             ConvertFrom-LDAPSearchResponse
-        }
+    }
 }
 
 
@@ -222,9 +222,9 @@ function Convert-ADIdentityToFilter {
 function Update-ADUserEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [DirectoryServices.DirectoryEntry] $Entry
+        [PSCustomObject] $Entry
     )
     process {
-        Update-DirectoryEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -NotePropertyName Enabled -TrueValue $false -FalseValue $true
+        Update-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -NotePropertyName Enabled -TrueValue $false -FalseValue $true
     }
 }

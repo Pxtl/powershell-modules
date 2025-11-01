@@ -15,7 +15,7 @@ feature-incomplete at this time.  Also, unfortunately
     PowerShellVersion = '5.1'
 
     NestedModules = @(
-        '.\Shared\ADDirectoryEntry.psm1'
+        '.\Shared\LDAPEntry.psm1'
         '.\Shared\ADHelpers.psm1'
         'ADRootDSE.psm1'
         'ADObject.psm1'
