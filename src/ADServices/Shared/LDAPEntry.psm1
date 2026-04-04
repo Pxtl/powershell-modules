@@ -7,14 +7,16 @@ function Update-LDAPEntryFlag {
     .SYNOPSIS
         Add a boolean note property to the entry based on a bitfield value.
     .DESCRIPTION
-        Editing the direct members of the entries tends to just cause
-        errors, so instead we can set Note properties to expose useful
-        boolean flags that are expressed internally to the properties as bit
-        fields.  These Note properties will shadow the built-in properties
-        that cannot be meaningfully updated and don't necessarily match
-        their underlying value.
+        Editing the direct members of the entries is risky, so instead we can
+        set Note properties to expose useful boolean flags that are expressed
+        internally to the properties as bit fields.  These Note properties will
+        shadow the built-in properties that cannot be meaningfully updated and
+        don't necessarily match their underlying value.
     #>
-    [CmdletBinding()]
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to Add-Member func'
+    )]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         # The entry to set a note flag upon.
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
@@ -43,6 +45,12 @@ function Update-LDAPEntryFlag {
         [object] $FalseValue = $null
     )
     begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
+    process {
         [bool] $isFlagTrue = Get-LDAPEntryFlag $Entry $BitFieldProperty $BitMask
         
         $noteValue = if ($isFlagTrue) {
@@ -62,7 +70,10 @@ function Update-LDAPEntryFlag {
 function Get-LDAPEntryFlag {
     <#
     .SYNOPSIS
-        Gets a bitfield flag within the properties of a given DirectoryEntry
+        Gets a bitfield flag within the properties of a given directory entry
+        PSCustomObject.  This operation happens offline and is not sent to the
+        server until Set-ADObject is called with the explicit members to
+        replace.
     #>
     [OutputType([bool])]
     [CmdletBinding()]
@@ -91,7 +102,10 @@ function Get-LDAPEntryFlag {
 function Set-LDAPEntryFlag {
     <#
     .SYNOPSIS
-        Set or clears bitfield flag within the properties of a given DirectoryEntry
+        Set or clears bitfield flag within the properties of a given
+        directory entry PSCustomObject.  This operation happens offline and is not sent to the
+        server until Set-ADObject is called with the explicit members to
+        replace.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -129,7 +143,7 @@ function Set-LDAPEntryFlag {
 function Set-LDAPEntryPropertyTable {
     <#
     .SYNOPSIS
-        Set properties of a given DirectoryEntry from the given Properties hashtable
+        Set properties of a given directory entry PSCustomObject from the given Properties hashtable
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param (

@@ -1,3 +1,5 @@
+
+
 [CmdletBinding()]
 param (
     [Parameter()]
@@ -32,7 +34,7 @@ Describe 'ADUser' -Tags Integration {
         New-ADUser @ConnectionParam -Name $testUserName -Verbose:$VerbosePreference
         
         $result = Get-ADUser @ConnectionParam -Identity $testUserName -Verbose:$VerbosePreference
-        $result.Properties['sAMAccountName'] | Should -Be $testUserName
+        $result.sAMAccountName | Should -Be $testUserName
         $result.distinguishedName | Should -Be "CN=$testUserName,CN=Users,DC=samdom,DC=example,DC=com"
     }
 

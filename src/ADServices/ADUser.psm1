@@ -1,6 +1,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
 . $PSScriptRoot\Shared\Variables.ps1
+Add-Type -AssemblyName 'System.DirectoryServices.Protocols'
 
 function Get-ADUser {
     <#
@@ -10,10 +11,10 @@ function Get-ADUser {
         Retrieves an Active Directory user by their identity, which can be a
         distinguished name, GUID, SID, or sAMAccountName.  
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry]
+        [PSCustomObject]
         # $null if not found.
     #>
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
     param (
         # The filter to search for users. Uses normal LDAP Search syntax, *not*
@@ -51,9 +52,9 @@ function New-ADUser {
     .SYNOPSIS
         Creates a new Active Directory user.
     .DESCRIPTION
-        Creates a new Active Directory user with the specified name.       
+        Creates a new Active Directory user with the specified name.
     .OUTPUTS
-        [PSCustomObject]
+        [PSCustomObject] if PassThru is enabled.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessage("PSShouldProcess","",Scope="Function")] # -WhatIf passed through to ADObject func
     [OutputType([PSCustomObject])]
@@ -92,6 +93,10 @@ function New-ADUser {
         if ($Null -eq $Enabled) {
             $Enabled = $true
         }
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
     }
     process {
         $entry = New-ADObject 'User' 'CN' $Name `
@@ -99,17 +104,16 @@ function New-ADUser {
             -DefaultRelativePath 'CN=Users' `
             -Server $Server `
             -Credential $Credential `
-            -WhatIf:$WhatIfPreference `
-            -Verbose:$VerbosePreference `
-            -DoSAMAccountName
+            -DoSAMAccountName `
+            -PassThru `
+            @commonParams
 
         if (($null -ne $Enabled) -or ($OtherAttributes)) {
-            Set-ADUserEntry $entry -Enabled $Enabled -OtherAttributes $OtherAttributes
+            $entry = Set-ADUser -Identity $entry.distinguishedName -Enabled $Enabled -OtherAttributes $OtherAttributes -Server $Server -Credential $Credential -PassThru @commonParams
+            Update-ADUserEntry $entry @commonParams
         }
         
         if ($PassThru) {
-            $entry = Get-ADUser -Identity $entry.distinguishedName -Server $Server -Credential $Credential
-
             # output
             $entry
         }
@@ -124,10 +128,12 @@ function Set-ADUser {
     .DESCRIPTION
         Modifies an Active Directory user with the specified properties.
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry]
+        [PSCustomObject] if PassThru is enabled.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessage("PSShouldProcess","",Scope="Function")] # -WhatIf passed through to ADObject func
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to ADObject func'
+    )]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # The identity of the user to modify.
@@ -151,17 +157,32 @@ function Set-ADUser {
 
         [switch] $PassThru
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
-        $entry = Get-ADObject 'User' -Identity $Identity -Server $Server $Credential $Credential
+        $entry = Get-ADObject 'User' -Identity $Identity -Server $Server -Credential $Credential
         if (($null -ne $Enabled) -or ($OtherAttributes)) {
-            Set-ADUserEntry $entry -Enabled $Enabled -OtherAttributes $OtherAttributes
-            $entry.CommitChanges()
+            Set-ADUserEntry $entry -Enabled $Enabled -OtherAttributes $OtherAttributes @commonParams
+
+            # clone $OtherAttributes so we can modify it here
+            $replacementsTable = if ($OtherAttributes) {
+                $OtherAttributes.Clone()
+            } else {
+                @{}
+            }
+            $replacementsTable['userAccountControl'] = $entry.userAccountControl
+
+            Set-ADObject 'User' -Identity $Identity -Replace $replacementsTable -Server $Server -Credential $Credential @commonParams
+            Update-ADUserEntry $entry
         } else {
             Write-Warning "Can't update user '$Identity', nothing to do."
         }
 
         if ($PassThru) {
-            Update-ADGroupEntry $entry
 
             # output
             $entry
@@ -222,7 +243,12 @@ function Test-ADUser {
     }
 }
 
-#private
+
+#region private
+<#
+.SYNOPSIS
+    Set the members of an AD User directory entry PSObject
+#>
 function Set-ADUserEntry {
     [Diagnostics.CodeAnalysis.SuppressMessage("PSShouldProcess","",Scope="Function")] # -WhatIf passed through to ADObject func
     [CmdletBinding(SupportsShouldProcess)]
@@ -245,3 +271,4 @@ function Set-ADUserEntry {
         }
     }
 }
+#endregion

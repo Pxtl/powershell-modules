@@ -10,7 +10,7 @@ function Invoke-SearchRequest {
     [CmdletBinding()]
     param (
         # The filter to search for entries. Uses normal LDAP Search syntax, *not*
-        # PS ActiveDirctory search.
+        # PS ActiveDirectory search.
         [string] $LDAPFilter,
         
         # The base path to search within on the given server
@@ -161,7 +161,6 @@ function Get-DistinguishedNameComponent {
     #>
     [OutputType([string])]
     [CmdletBinding()]
-    [CmdletBinding()]
     param (
         [Parameter([string])]
         $DistinguishedName,
@@ -220,11 +219,72 @@ function Convert-ADIdentityToFilter {
 
 
 function Update-ADUserEntry {
+    <#
+    .SYNOPSIS
+        Recalculate the local properties of a directory entry PSCustomObject representing an AD user.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to LDAPEntry func'
+    )]
+    [OutputType([string])]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject] $Entry
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
-        Update-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -NotePropertyName Enabled -TrueValue $false -FalseValue $true
+        Update-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -NotePropertyName Enabled -TrueValue $false -FalseValue $true @commonParams
+    }
+}
+
+
+function Add-DirectoryAttributeModification {
+    <#
+    .SYNOPSIS
+        Creates a DirectoryAttributeModification object with the Add operation.
+    .OUTPUTS
+        [DirectoryServices.Protocols.DirectoryAttributeModification] if PassThru is set.
+    #>
+    [OutputType([DirectoryServices.Protocols.DirectoryAttributeModification])]
+    [CmdletBinding()]
+    param (
+        [Parameter(Position=0, Mandatory)]
+        [AllowEmptyCollection()]
+        [Collections.ArrayList] $AttributeModificationList,
+
+        # The type of modification to perform.
+        [Parameter(Position=1, Mandatory, ValueFromPipelineByPropertyName)]
+        [DirectoryServices.Protocols.DirectoryAttributeOperation] $Operation,
+
+        # The name of the attribute to modify.
+        [Parameter(Position=2, Mandatory, ValueFromPipelineByPropertyName)]
+        [string] $Name,
+
+        # The value(s) to set on the attribute.
+        [Parameter(Position=3, ValueFromPipelineByPropertyName)]
+        [object[]] $Value,
+
+        [Switch]
+        $PassThru
+    )
+    process {
+        $attributeModification = [DirectoryServices.Protocols.DirectoryAttributeModification]::new()
+        $attributeModification.Name = $Name
+        foreach ($val in $Value) {
+            $attributeModification.Add($val) | Out-Null
+        }
+        $attributeModification.Operation = $Operation
+
+        $AttributeModificationList.Add($attributeModification) | Out-Null
+        if ($PassThru) {
+            # output
+            $modification
+        }
     }
 }

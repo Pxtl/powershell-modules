@@ -46,8 +46,8 @@ function Get-ADObject {
     )
     begin {
         if (-not $SearchBase) {
-            $adroot = Get-ADRootDSE -Server $Server -Credential $Credential -Verbose:$VerbosePreference
-            $SearchBase = $adRoot.defaultnamingcontext
+            $adRoot = Get-ADRootDSE -Server $Server -Credential $Credential -Verbose:$VerbosePreference
+            $SearchBase = $adRoot.defaultNamingContext
         }
     }
     process {
@@ -83,7 +83,7 @@ function New-ADObject {
     .DESCRIPTION
         Creates a new LDAP entry with the specified name.
     .OUTPUTS
-        [PSCustomObject] when Passthru is enabled.
+        [PSCustomObject] when PassThru is enabled.
     #>
     [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess, DefaultParameterSetName='Path')]
@@ -96,7 +96,7 @@ function New-ADObject {
         # Should be CN or OU. Defaults to CN.
         [ValidateSet('CN', 'OU')]
         [Parameter(Position=1)]
-        [string] $DistinguishedComponenentType = 'CN',
+        [string] $DistinguishedComponentType = 'CN',
 
         # The name of the new entry.
         [Parameter(Mandatory, Position=2, ValueFromPipeline)]
@@ -118,7 +118,11 @@ function New-ADObject {
         [PSCredential] $Credential,
 
         # Should set sAM Account Name? If not set will default to a GUID.
-        [Switch] $DoSAMAccountName
+        [Switch] $DoSAMAccountName,
+
+        # Returns an object representing the item with which you are working. By
+        # default, this cmdlet does not generate any output.
+        [Switch] $PassThru
     )
     begin {
         if (-not $Path) {
@@ -132,13 +136,17 @@ function New-ADObject {
         if (-not (Test-ADObject -Identity $Path -Server $Server -Credential $Credential)) {
             Write-Error "Parent container node '$(if ($Path) { $Path } else { $DefaultRelativePath })' not found."
         }
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
     }
     process {
         $targetSummary = "$Type '$Name' in container '$Path'"
         if ($PSCmdlet.ShouldProcess($targetSummary)) {
             Write-Verbose "$($MyInvocation.MyCommand): $targetSummary"
 
-            $newDistinguishedName = "$DistinguishedComponenentType=$Name,$Path"
+            $newDistinguishedName = "$DistinguishedComponentType=$Name,$Path"
             $request = [DirectoryServices.Protocols.AddRequest]::new($newDistinguishedName, $Type)
 
             if ($DoSAMAccountName) {
@@ -150,16 +158,20 @@ function New-ADObject {
                 }
             }
 
+            $ldapConnection = New-LDAPConnection $Server $Credential
             $ldapConnection.SendRequest($request) | Out-Null
 
             if ($DoSAMAccountName) {
                 $attributes = @{
                     'sAMAccountName' = $Name
                 }
-                Set-ADObject -Type $Type -Identity $newDistinguishedName -OtherAttributes $attributes -Server $Server -Credential $Credential
+                Set-ADObject -Type $Type -Identity $newDistinguishedName -Replace $attributes -Server $Server -Credential $Credential @commonParams
             }
 
-            Get-ADObject -Type $Type -Identity $newDistinguishedName -Server $Server -Credential $Credential
+            if ($PassThru) {
+                # output
+                Get-ADObject -Type $Type -Identity $newDistinguishedName -Server $Server -Credential $Credential
+            }
         }
     }
 }
@@ -172,7 +184,7 @@ function Set-ADObject {
     .DESCRIPTION
         Modifies an LDAP entry on the server with the specified properties.
     .OUTPUTS
-        [System.PSCustomObject] when Passthru is enabled.
+        [System.PSCustomObject] when PassThru is enabled.
     #>
     [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
@@ -184,10 +196,18 @@ function Set-ADObject {
         # The identity of the LDAP entry to modify.
         [Parameter(Mandatory, ValueFromPipeline, Position=1)]
         [string] $Identity,
-
-        # A hashtable of properties to set on the LDAP entry.
+        
+        # A hashtable of properties to add on the LDAP entry.
         [Parameter()]
-        [hashtable] $OtherAttributes,
+        [hashtable] $Add,
+
+        # A hashtable of properties to remove from the LDAP entry.
+        [Parameter()]
+        [hashtable] $Remove,
+
+        # A hashtable of properties to replace on the LDAP entry.
+        [Parameter()]
+        [hashtable] $Replace,
 
         # The domain controller to query.
         [Parameter()]
@@ -197,6 +217,8 @@ function Set-ADObject {
         [Parameter()]
         [PSCredential] $Credential = $null,
 
+        #Returns an object representing the item with which you are working. By
+        #default, this cmdlet does not generate any output.
         [switch] $PassThru
     )
     process {
@@ -204,21 +226,32 @@ function Set-ADObject {
             $entry = Get-ADObject $Type -Identity $Identity -Server $Server -Credential $Credential
             if (($entry | Measure-Object).Count -eq 1) {
                 Write-Verbose "Modifying $Type '$($entry.distinguishedName)'."
-                $ldapConnection = New-LDAPConnection $Server $Credential
                 $attributeModifications = [Collections.ArrayList]::new()
-                foreach ($attribute in $OtherAttributes.GetEnumerator()) {
-                    $attributeModification = [DirectoryServices.Protocols.DirectoryAttributeModification]::new()
-                    $attributeModification.Name = $attribute.Key
-                    $attributeModification.Add($attribute.Value) | Out-Null
-                    $attributeModification.Operation = [DirectoryServices.Protocols.DirectoryAttributeOperation]::Replace
-                    
-                    $attributeModifications.Add($attributeModification) | Out-Null
+
+                if ($Add) {
+                    foreach ($attribute in $Add.GetEnumerator()) {
+                        Add-DirectoryAttributeModification -AttributeModificationList $attributeModifications -Operation [DirectoryServices.Protocols.DirectoryAttributeOperation]::Add -Name $attribute.Key -Value $attribute.Value
+                    }
                 }
+
+                if ($Remove) {
+                    foreach ($attribute in $Remove.GetEnumerator()) {
+                        Add-DirectoryAttributeModification -AttributeModificationList $attributeModifications -Operation [DirectoryServices.Protocols.DirectoryAttributeOperation]::Delete -Name $attribute.Key -Value $attribute.Value
+                    }
+                }
+
+                if ($Replace) {
+                    foreach ($attribute in $Replace.GetEnumerator()) {
+                        Add-DirectoryAttributeModification -AttributeModificationList $attributeModifications -Operation Replace -Name $attribute.Key -Value $attribute.Value
+                    }
+                }
+
                 $modifyRequest = [DirectoryServices.Protocols.ModifyRequest]::new(
                     $entry.distinguishedName,
                     $attributeModifications
                 )
 
+                $ldapConnection = New-LDAPConnection $Server $Credential
                 $ldapConnection.SendRequest($modifyRequest) | Out-Null
                 
                 if ($PassThru) {

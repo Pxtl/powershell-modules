@@ -26,7 +26,7 @@ Describe 'ADGroup' -Tags Integration {
         New-ADGroup @ConnectionParam -Name $testGroupName -Verbose:$VerbosePreference
         
         $result = Get-ADGroup @ConnectionParam -Identity $testGroupName -Verbose:$VerbosePreference
-        $result.Properties['sAMAccountName'] | Should -Be $testGroupName
+        $result.sAMAccountName | Should -Be $testGroupName
         $result.distinguishedName | Should -Be "CN=$testGroupName,CN=Users,DC=samdom,DC=example,DC=com"
     }
 

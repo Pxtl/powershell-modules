@@ -10,9 +10,9 @@ function Get-ADGroup {
     .DESCRIPTION
         Retrieves an Active Directory group using System.DirectoryServices.
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry], none if not found.
+        [PSCustomObject], none if not found.
     #>
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
     param (
         # The filter to search for groups. Uses normal LDAP Search syntax, *not*
@@ -52,12 +52,12 @@ function New-ADGroup {
     .DESCRIPTION
         Creates a new Active Directory group using System.DirectoryServices.
     .OUTPUTS
-        Nothing, unless PassThru is enabled, then [System.DirectoryServices.DirectoryEntry].
+        [PSCustomObject] if PassThru is enabled.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessage(
         'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to ADObject func'
     )]
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # The name of the new group.
@@ -90,7 +90,10 @@ function New-ADGroup {
         [switch] $PassThru
     )
     begin {
-
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
     }
     process {
         $entry = New-ADObject 'Group' 'CN' $Name `
@@ -100,16 +103,15 @@ function New-ADGroup {
             -Credential $Credential `
             -WhatIf:$WhatIfPreference `
             -Verbose:$VerbosePreference `
+            -PassThru `
             -DoSAMAccountName
 
         if ($GroupCategory -or $GroupScope -or $OtherAttributes) {
-            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope -OtherAttributes $OtherAttributes -WhatIf:$WhatIfPreference
-            $entry.CommitChanges()
+            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope -OtherAttributes $OtherAttributes @commonParams
+            Update-ADGroupEntry $entry
         }
 
         if ($PassThru) {
-            Update-ADGroupEntry $entry
-
             # output
             $entry
         }
@@ -124,12 +126,12 @@ function Set-ADGroup {
     .DESCRIPTION
         Modifies an Active Directory group using System.DirectoryServices.
     .OUTPUTS
-        Nothing, unless PassThru is enabled, then [System.DirectoryServices.DirectoryEntry]
+        [PSCustomObject] if PassThru is enabled.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessage(
         'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to ADObject func'
     )]
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # The identity of the group to alter. Can be sAMAcountName, SID, LDAP
@@ -159,18 +161,32 @@ function Set-ADGroup {
 
         [switch] $PassThru
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
         $entry = Get-ADObject 'Group' -Identity $Identity -Server $Server -Credential $Credential
         if ($GroupCategory -or $GroupScope -or $OtherAttributes) {
-            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope -OtherAttributes $OtherAttributes -WhatIf:$WhatIfPreference
-            $entry.CommitChanges()
+            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope -OtherAttributes $OtherAttributes @commonParams
+
+            # clone $OtherAttributes so we can modify it here
+            $replacementsTable = if ($OtherAttributes) {
+                $OtherAttributes.Clone()
+            } else {
+                @{}
+            }
+            $replacementsTable['GroupType'] = $entry.GroupType
+
+            Set-ADObject 'Group' -Identity $Identity -Replace $replacementsTable -Server $Server -Credential $Credential @commonParams
+            Update-ADGroupEntry $entry
         } else {
             Write-Warning "Can't update group '$Identity', nothing to do."
         }
 
         if ($PassThru) {
-            Update-ADGroupEntry $entry
-
             # output
             $entry
         }
@@ -246,7 +262,7 @@ function Test-ADGroup {
 function Update-ADGroupEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [DirectoryServices.DirectoryEntry] $Entry
+        [PSCustomObject] $Entry
     )
     process {
         Update-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -NotePropertyName GroupScope -TrueValue Global
@@ -260,9 +276,13 @@ function Update-ADGroupEntry {
 
 #private
 function Set-ADGroupEntry {
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to LDAPEntry func'
+    )]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [DirectoryServices.DirectoryEntry] $Entry,
+        [PSCustomObject] $Entry,
 
         [ValidateSet('', 'Distribution', 'Security')]
         [Parameter()]
@@ -270,8 +290,18 @@ function Set-ADGroupEntry {
 
         [ValidateSet('', 'Global', 'DomainLocal', 'Universal')]
         [Parameter()]
-        [string] $GroupScope
+        [string] $GroupScope,
+
+        # A hashtable of properties to set on the user.
+        [Parameter()]
+        [hashtable] $OtherAttributes
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
         [nullable[bool]] $securityEnabled = if ($GroupCategory -eq 'Security') {
             $true
@@ -281,21 +311,25 @@ function Set-ADGroupEntry {
             $null
         }
         if ($null -ne $securityEnabled) {
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -Value $securityEnabled
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -Value $securityEnabled @commonParams
         }
 
         if ($GroupScope -eq 'Global') {
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $true
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $true @commonParams
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false @commonParams
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false @commonParams
         } elseif ($GroupScope -eq 'DomainLocal') {
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $true
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false @commonParams
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $true @commonParams
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $false @commonParams
         } elseif ($GroupScope -eq 'Universal') {
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false
-            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $true
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false @commonParams
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false @commonParams
+            Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $true @commonParams
+        }
+
+        if ($OtherAttributes) {
+            Set-LDAPEntryPropertyTable $Entry -OtherAttributes $OtherAttributes @commonParams
         }
     }
 }

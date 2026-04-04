@@ -10,9 +10,9 @@ function Get-ADOrganizationalUnit {
         Retrieves an Active Directory OrganizationalUnit using
         System.DirectoryServices.
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry], none if not found.
+        [PSCustomObject], none if not found.
     #>
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
     param (
         # The filter to search for OrganizationalUnits. Uses normal AD Search
@@ -52,12 +52,12 @@ function New-ADOrganizationalUnit {
     .DESCRIPTION
         Creates a new Active Directory OrganizationalUnit using System.DirectoryServices.
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry]
+        [PSCustomObject]
     #>
     [Diagnostics.CodeAnalysis.SuppressMessage(
         'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to ADObject func'
     )]
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         # The name of the new OrganizationalUnit.
@@ -114,12 +114,12 @@ function Set-ADOrganizationalUnit {
     .DESCRIPTION
         Modifies an Active Directory OrganizationalUnit using System.DirectoryServices.
     .OUTPUTS
-        [System.DirectoryServices.DirectoryEntry]
+        [PSCustomObject]
     #>
     [Diagnostics.CodeAnalysis.SuppressMessage(
         'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to ADObject func'
     )]
-    [OutputType([DirectoryServices.DirectoryEntry])]
+    [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -222,7 +222,7 @@ function Test-ADOrganizationalUnit {
 function Update-ADOrganizationalUnitEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [DirectoryServices.DirectoryEntry] $Entry
+        [PSCustomObject] $Entry
     )
     process {
         # no-op.
@@ -234,7 +234,7 @@ function Update-ADOrganizationalUnitEntry {
 function Set-ADOrganizationalUnitEntry {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [DirectoryServices.DirectoryEntry] $Entry
+        [PSCustomObject] $Entry
     )
     process {
         # no-op.
