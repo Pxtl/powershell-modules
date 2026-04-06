@@ -34,7 +34,7 @@ function Get-ADGroup {
         [PSCredential] $Credential = $null
     )
     process {
-        $entries = Get-ADObject 'Group' @PSBoundParameters
+        $entries = Get-ADObject 'Group' -ObjectPropertyConverter ${function:Convert-ADGroupPropertyTable} @PSBoundParameters
         foreach ($entry in $entries) {
             Update-ADGroupEntry $entry
             
@@ -77,7 +77,7 @@ function New-ADGroup {
         [Parameter()]
         [string] $GroupScope,
 
-        # A hashtable of properties to set on the object.
+        # A hashtable of LDAP attributes to set on the object.
         [Parameter()]
         [hashtable] $OtherAttributes,
 
@@ -99,15 +99,20 @@ function New-ADGroup {
         $entry = New-ADObject 'Group' 'CN' $Name `
             -Path $Path `
             -DefaultRelativePath 'CN=Users' `
+            -ObjectPropertyConverter ${function:Convert-ADGroupPropertyTable} `
+            -OtherAttributes $OtherAttributes `
             -Server $Server `
             -Credential $Credential `
-            -WhatIf:$WhatIfPreference `
-            -Verbose:$VerbosePreference `
+            @commonParams `
             -PassThru `
             -DoSAMAccountName
 
-        if ($GroupCategory -or $GroupScope -or $OtherAttributes) {
-            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope -OtherAttributes $OtherAttributes @commonParams
+        if ($GroupCategory -or $GroupScope) {
+            Set-ADGroup $entry.DistinguishedName -GroupCategory $GroupCategory -GroupScope $GroupScope -Server $Server -Credential $Credential @commonParams
+        }
+
+        if ($GroupCategory -or $GroupScope) {
+            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope @commonParams
             Update-ADGroupEntry $entry
         }
 
@@ -147,9 +152,17 @@ function Set-ADGroup {
         [Parameter()]
         [string] $GroupScope,
 
-        # A hashtable of properties to set on the group.
+        # A hashtable of LDAP properties to add on the entry.
         [Parameter()]
-        [hashtable] $OtherAttributes,
+        [hashtable] $Add,
+
+        # A hashtable of LDAP properties to remove from the entry.
+        [Parameter()]
+        [hashtable] $Remove,
+
+        # A hashtable of LDAP properties to replace on the entry.
+        [Parameter()]
+        [hashtable] $Replace,
 
         # The domain controller to query.
         [Parameter()]
@@ -168,19 +181,21 @@ function Set-ADGroup {
         }
     }
     process {
-        $entry = Get-ADObject 'Group' -Identity $Identity -Server $Server -Credential $Credential
-        if ($GroupCategory -or $GroupScope -or $OtherAttributes) {
-            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope -OtherAttributes $OtherAttributes @commonParams
+        $entry = Get-ADGroup -Identity $Identity -Server $Server -Credential $Credential
+        if ($GroupCategory -or $GroupScope -or $Add -or $Remove -or $Replace) {
 
-            # clone $OtherAttributes so we can modify it here
+            # clone $Replace so we can modify it here
             $replacementsTable = if ($OtherAttributes) {
-                $OtherAttributes.Clone()
+                $Replace.Clone()
             } else {
                 @{}
             }
-            $replacementsTable['GroupType'] = $entry.GroupType
 
-            Set-ADObject 'Group' -Identity $Identity -Replace $replacementsTable -Server $Server -Credential $Credential @commonParams
+            # using Add to force error if "replace" already has GroupType.
+            $replacementsTable.Add('GroupType', $entry.Properties['GroupType'])
+
+            Set-ADObject 'Group' -Identity $Identity -Add $Add -Remove $Remove -Replace $replacementsTable -Server $Server -Credential $Credential @commonParams
+            Set-ADObjectEntry $Entry -Add $Add -Remove $Remove -Replace $replacementsTable @commonParams
             Update-ADGroupEntry $entry
         } else {
             Write-Warning "Can't update group '$Identity', nothing to do."
@@ -270,6 +285,9 @@ function Update-ADGroupEntry {
         Update-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -NotePropertyName GroupScope -TrueValue Universal
 
         Update-LDAPEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -NotePropertyName GroupCategory -TrueValue Security -FalseValue Distribution
+
+        Update-ADObjectEntry $Entry -ObjectPropertyConverter ${function:Convert-ADGroupPropertyTable}
+
     }
 }
 
@@ -292,7 +310,7 @@ function Set-ADGroupEntry {
         [Parameter()]
         [string] $GroupScope,
 
-        # A hashtable of properties to set on the user.
+        # A hashtable of LDAP attributes to set on the user.
         [Parameter()]
         [hashtable] $OtherAttributes
     )
@@ -329,7 +347,53 @@ function Set-ADGroupEntry {
         }
 
         if ($OtherAttributes) {
-            Set-LDAPEntryPropertyTable $Entry -OtherAttributes $OtherAttributes @commonParams
+            Update-ADGroupEntry $Entry -Replace $OtherAttributes @commonParams
         }
+    }
+}
+
+
+function Convert-ADGroupPropertyTable {
+    <#
+    .SYNOPSIS
+        Takes a table of raw LDAP properties and converts them into a table of
+        object properties for an ADGroup.
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [hashtable] $LdapAttributeTable,
+        [hashtable] $ObjectPropertyTable
+    )
+    process {
+        if(-not $ObjectPropertyTable) {
+            $ObjectPropertyTable = @{}
+        }
+
+        Convert-ADObjectPropertyTable -LdapAttributeTable $LdapAttributeTable -ObjectPropertyTable $ObjectPropertyTable | Out-Null
+
+        $ObjectPropertyTable['GroupCategory'] = if($LdapAttributeTable['groupType'] -band $GroupType_SECURITY_ENABLED) {
+            'Security'
+        } else {
+            'Distribution'
+        }
+
+        $ObjectPropertyTable['GroupScope'] = if ($LdapAttributeTable['groupType'] -band $GroupType_ACCOUNT_GROUP) {
+            'Global'
+        } elseif ($LdapAttributeTable['groupType'] -band $GroupType_RESOURCE_GROUP) {
+            'DomainLocal'
+        } elseif ($LdapAttributeTable['groupType'] -band $GroupType_UNIVERSAL_GROUP) {
+            'Universal'
+        } # (bit mask 1, 2, 4, or 8)']
+        $ObjectPropertyTable['HomePage'] = $LdapAttributeTable['wWWHomePage']
+        $ObjectPropertyTable['ManagedBy'] = $LdapAttributeTable['managedBy']
+        $ObjectPropertyTable['MemberOf'] = $LdapAttributeTable['memberOf']
+        $ObjectPropertyTable['Members'] = $LdapAttributeTable['member']
+        $ObjectPropertyTable['SamAccountName'] = $LdapAttributeTable['sAMAccountName']
+        $ObjectPropertyTable['SID'] = $LdapAttributeTable['objectSID'].ToString()
+        $ObjectPropertyTable['SIDHistory'] = $LdapAttributeTable['sidHistory']
+        
+        #output
+        $ObjectPropertyTable
     }
 }

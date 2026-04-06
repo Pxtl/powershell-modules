@@ -35,8 +35,7 @@ function Invoke-SearchRequest {
             '*' # attributes
         )
 
-        $ldapConnection.SendRequest($searchRequest) |
-            ConvertFrom-LDAPSearchResponse
+        $ldapConnection.SendRequest($searchRequest)
     }
 }
 
@@ -46,23 +45,54 @@ function ConvertFrom-LDAPSearchResponse {
     .SYNOPSIS
         Convert LDAP request response object into a PSCustomObject with all the members.
     #>
+    [CmdletBinding()]
     param (
         [Parameter(ValueFromPipeline)]
-        [DirectoryServices.Protocols.SearchResponse] $response
+        [DirectoryServices.Protocols.SearchResponse] $Response,
+
+        [Parameter(Mandatory)]
+        [scriptblock] $ObjectPropertyConverter
     )
     process {
-        foreach ($entry in $response.Entries) {
-            $table = @{}
+        foreach ($entry in $Response.Entries) {
+            $attributesTable = @{}
+
+            # Build attributesTable out of response attributes. Some attributes
+            # need special handling to parse their binary forms.
             foreach ($key in $entry.Attributes.Keys | Sort-Object) {
                 $valueCollection = $entry.Attributes[$key]
-                if ($valueCollection.Count -gt 1) {
-                    $table[$key] = $valueCollection | ForEach-Object { $_ }
+                $attributesTable[$key] = if ($key -eq 'objectSid' -and $valueCollection[0] -is [byte[]]) {
+                    [Security.Principal.SecurityIdentifier]::new($valueCollection[0], 0)
+                } elseif ($key -eq 'objectGuid') {
+                    [Guid]::new($valueCollection[0])
+                } elseif ($valueCollection.Count -gt 1) {
+                    # flatten & parse array of UTF-8 binary. Needed for objectClass, possibly others.
+                    $valueCollection | Foreach-Object {
+                        if ($_) { [Text.Encoding]::UTF8.GetString($_) }
+                    }
                 } else {
-                    $table[$key] = $valueCollection[0]
+                    $valueCollection[0]
                 }
             }
+
+            # DEBUG
+            # Do standard conversions.
+            # $attributesTable['objectClass'] = ($attributesTable['objectClass'] | Foreach-Object {
+            #     if ($_) { [Text.Encoding]::UTF8.GetString($_) }
+            # })
+            # $attributesTable['objectGUID'] = if ($attributesTable['objectGUID']) { 
+            #     [Guid]::new($attributesTable['objectGUID']) 
+            # }
+
+            # Use the provided converter to convert the attributes hashtable
+            # into object properties, the make the object.
+            $ObjectPropertyTable = Invoke-Command -ScriptBlock $ObjectPropertyConverter -ArgumentList $attributesTable
+
+            $resultObject = [PSCustomObject] $ObjectPropertyTable
+            Set-LDAPEntryAttributeTable $resultObject $attributesTable
+
             # output
-            [PSCustomObject] $table
+            $resultObject
         }
     }
 }
@@ -218,32 +248,6 @@ function Convert-ADIdentityToFilter {
 }
 
 
-function Update-ADUserEntry {
-    <#
-    .SYNOPSIS
-        Recalculate the local properties of a directory entry PSCustomObject representing an AD user.
-    #>
-    [Diagnostics.CodeAnalysis.SuppressMessage(
-        'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to LDAPEntry func'
-    )]
-    [OutputType([string])]
-    [CmdletBinding(SupportsShouldProcess)]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [PSCustomObject] $Entry
-    )
-    begin {
-        $commonParams = @{
-            WhatIf = $WhatIfPreference
-            Verbose = $VerbosePreference
-        }
-    }
-    process {
-        Update-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -NotePropertyName Enabled -TrueValue $false -FalseValue $true @commonParams
-    }
-}
-
-
 function Add-DirectoryAttributeModification {
     <#
     .SYNOPSIS
@@ -285,6 +289,106 @@ function Add-DirectoryAttributeModification {
         if ($PassThru) {
             # output
             $modification
+        }
+    }
+}
+
+
+function Set-Object {
+    <#
+    .SYNOPSIS
+        Update properties of the given object with the given hashtable.  Errors
+        out if a hashtable key does not match an object property.
+    #>
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+        # PSCustomObject to modify.
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [PSCustomObject] $Object,
+
+        # Hashtable of parameters to replace the object properties of the custom
+        # object.  Will throw error if object is missing any property keys.
+        [Parameter()]
+        [hashtable] $PropertyTable
+    )
+    process {
+        if ($PSCmdlet.ShouldProcess([string] $Object)) {
+            $PropertyTable.Keys |
+                ForEach-Object { 
+                    if ($Object.PSObject.Properties.Name -contains $_) { 
+                        $Object.$_ = $PropertyTable[$_] 
+                    } 
+                }
+        }
+    }
+}
+
+
+function Convert-ADObjectPropertyTable {
+    <#
+    .SYNOPSIS
+        Takes a table of raw LDAP attributes and converts them into a table of
+        object properties for an ADObject.
+    .NOTES
+        Adapted from https://learn.microsoft.com/en-us/archive/technet-wiki/12037.active-directory-get-aduser-default-and-extended-properties
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [hashtable] $LdapAttributeTable,
+        [hashtable] $ObjectPropertyTable
+    )
+    process {
+        if(-not $ObjectPropertyTable) {
+            $ObjectPropertyTable = @{}
+        }
+        
+        $ObjectPropertyTable['CanonicalName'] = $LdapAttributeTable['canonicalName']
+        $ObjectPropertyTable['CN'] = $LdapAttributeTable['cn']
+        $ObjectPropertyTable['Created'] = $LdapAttributeTable['createTimeStamp']
+        $ObjectPropertyTable['Deleted'] = $LdapAttributeTable['isDeleted']
+        $ObjectPropertyTable['Description'] = $LdapAttributeTable['description']
+        $ObjectPropertyTable['DisplayName'] = $LdapAttributeTable['displayName']
+        $ObjectPropertyTable['DistinguishedName'] = $LdapAttributeTable['distinguishedName']
+        $ObjectPropertyTable['LastKnownParent']	= $LdapAttributeTable['lastKnownParent']
+        $ObjectPropertyTable['Modified'] = $LdapAttributeTable['modifyTimeStamp']
+        $ObjectPropertyTable['Name'] = $LdapAttributeTable['name'] # (Relative Distinguished Name)
+        $ObjectPropertyTable['ObjectCategory'] = $LdapAttributeTable['objectCategory']
+        $ObjectPropertyTable['ObjectClass'] = $LdapAttributeTable['objectClass'] | Select-Object -Last 1
+        $ObjectPropertyTable['ObjectGUID'] = [string] $LdapAttributeTable['objectGUID']
+        $ObjectPropertyTable['ProtectedFromAccidentalDeletion'] = $LdapAttributeTable['nTSecurityDescriptor']
+
+        #output
+        $ObjectPropertyTable
+    }
+}
+
+
+function Convert-ADDateTime {
+    <#
+    .SYNOPSIS
+        Converts an LDAP date code (bigint 100-nanosecond intervals since
+        1601-01-01) to local time.
+    .OUTPUTS
+        [Nullable[DateTime]] in local timezone. [DateTimeOffset] would be better
+        but used [DateTime] for compatibility.
+    #>
+    [OutputType([Nullable[DateTime]])]
+    [CmdletBinding()]
+    param (
+        # A time code expressed as "File Time"; The LDAP format represents
+        # 100-nanosecond intervals since January 1, 1601.  It appears that
+        # [Int64]::MaxValue is used to represent max date.
+        [Parameter(ValueFromPipeline)]
+        [Nullable[Int64]] $FileTimeValue
+    )
+    process {
+        if ($FileTimeValue) {
+            if ($FileTimeValue -eq [Int64]::MaxValue) {
+                [DateTime]::MaxValue.ToLocalTime()
+            } else {
+                [DateTime]::FromFileTime($FileTimeValue).ToLocalTime()
+            }
         }
     }
 }

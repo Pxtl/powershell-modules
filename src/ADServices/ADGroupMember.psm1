@@ -33,6 +33,12 @@ function Add-ADGroupMember {
         [Switch]
         $PassThru
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
         $group = Get-ADGroup -Server $Server -Credential $Credential -Identity $Identity
         if (-not $group) {
@@ -41,24 +47,25 @@ function Add-ADGroupMember {
         }
         foreach ($MemberIdentity in $Members) {
             $newMember = Get-ADObject -Server $Server -Credential $Credential -Identity $MemberIdentity
-            $newMemberType = $newMember.objectClass -split ' ' | Select-Object -Last 1
-
+            $newMemberType = $newMember.ObjectClass
+            
+            # TODO: This doesn't need to be one request per-member. Should only
+            # use that mode as fallback if the Members' identities aren't all
+            # DistinguishedNames.
             if ($group -and $newMember) {
-                [string] $memberKey = $newMember.distinguishedName.Value # does not work if $memberKey is typed [object]
+                [string] $memberKey = $newMember.DistinguishedName
                 $targetSummary = "adding $newMemberType '$memberKey' to group '$Identity'"
                 if ($PSCmdlet.ShouldProcess($targetSummary)) {
-                    $group.Properties["member"].Add($memberKey)
+                    $additions = @{ member = $memberKey }
+                    Set-ADObject 'Group' -Identity $Identity -Add $additions -Server $Server -Credential $Credential @commonParams
+                    Set-ADObjectEntry $group -Add $additions @commonParams
                 }
                 Write-Verbose "$($MyInvocation.MyCommand): $targetSummary"
             } else {
                 Write-Error "Object '$MemberIdentity' not found."
             }
         }
-        if ($Members) {
-            if ($PSCmdlet.ShouldProcess($Identity, 'CommitChanges')) {
-                $group.CommitChanges()
-            }
-        } else {
+        if (-not $Members) {
             Write-Warning "Can't update group '$Identity' membership, nothing to do."
         }
 
@@ -112,23 +119,22 @@ function Remove-ADGroupMember {
             $newMemberType = $newMember.objectClass -split ' ' | Select-Object -Last 1
 
             if ($group -and $newMember) {
-                [string] $memberKey = $newMember.distinguishedName.Value # does not work if $memberKey is typed [object]
+                [string] $memberKey = $newMember.DistinguishedName # does not work if $memberKey is typed [object]
                 $targetSummary = "removing $newMemberType '$memberKey' from group '$Identity'"
                 if ($PSCmdlet.ShouldProcess($targetSummary)) {
-                    $group.Properties["member"].Remove($memberKey)
+                    $deletions = @{ member = $memberKey }
+                    Set-ADObject 'Group' -Identity $Identity -Remove $deletions -Server $Server -Credential $Credential @commonParams
+                    Set-ADObjectEntry $group -Remove $deletions @commonParams
                 }
                 Write-Verbose "$($MyInvocation.MyCommand): $targetSummary"
             } else {
                 Write-Error "Object '$MemberIdentity' not found."
             }
         }
-        if ($Members) {
-            if ($PSCmdlet.ShouldProcess($Identity, 'CommitChanges')) {
-                $group.CommitChanges()
-            }
-        } else {
+        if (-not $Members) {
             Write-Warning "Can't update group '$Identity' membership, nothing to do."
         }
+
         if ($PassThru) {
             # Output
             $group

@@ -68,7 +68,7 @@ function New-ADOrganizationalUnit {
         [Parameter()]
         [string] $Path,
 
-        # A hashtable of properties to set on the object.
+        # A hashtable of LDAP attributes to set on the object.
         [Parameter()]
         [hashtable] $OtherAttributes,
 
@@ -125,7 +125,7 @@ function Set-ADOrganizationalUnit {
         [Parameter(Mandatory, ValueFromPipeline)]
         [string] $Identity,
 
-        # A hashtable of properties to set on the OrganizationalUnit.
+        # A hashtable of LDAP attributes to set on the OrganizationalUnit.
         [Parameter()]
         [hashtable] $OtherAttributes,
 

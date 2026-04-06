@@ -26,7 +26,7 @@ Describe 'ADGroup Membership' -Tags Integration {
         $groupCode = 2
         $testGroup = "parentGroup$groupCode"
         $newGroup = New-ADGroup @ConnectionParam -Name $testGroup -Verbose:$VerbosePreference -PassThru
-        $newGroup.member.Count | Should -Be 0
+        ($newGroup.Members | Measure-Object).Count | Should -Be 0
 
         $testUser1Name = "childUser1ForGroup$groupCode"
         $testUser1 = New-ADUser @ConnectionParam -Name $testUser1Name -Verbose:$VerbosePreference -PassThru
@@ -40,9 +40,9 @@ Describe 'ADGroup Membership' -Tags Integration {
 
         ## test fetch from AD
         $loadedADGroup = Get-ADGroup @ConnectionParam -Identity $newGroup.distinguishedName
-        $loadedADGroup.member | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
-        $loadedADGroup.member | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
-        $loadedADGroup.member.Count | Should -Be 2
+        $loadedADGroup.Members | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $loadedADGroup.Members | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        ($loadedADGroup.Members | Measure-Object).Count | Should -Be 2
     }
 
     It 'Can Add-ADGroupMember to existing ADGroup' {
@@ -50,7 +50,7 @@ Describe 'ADGroup Membership' -Tags Integration {
         $groupCode = 2
         $testGroupName = "parentGroup$groupCode"
         $newGroup = New-ADGroup @ConnectionParam -Name $testGroupName -Verbose:$VerbosePreference -PassThru
-        $newGroup.member.Count | Should -Be 0
+        ($newGroup.Members | Measure-Object).Count | Should -Be 0
 
         $testUser1Name = "childUser1ForGroup$groupCode"
         $testUser1 = New-ADUser @ConnectionParam -Name $testUser1Name -Verbose:$VerbosePreference -PassThru
@@ -68,10 +68,10 @@ Describe 'ADGroup Membership' -Tags Integration {
 
         ## test fetch from AD
         $loadedADGroup = Get-ADGroup @ConnectionParam -Identity $newGroup.distinguishedName
-        $loadedADGroup.member | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
-        $loadedADGroup.member | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
-        $loadedADGroup.member | Should -Contain "CN=childUser3ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
-        $loadedADGroup.member.Count | Should -Be 3
+        $loadedADGroup.Members | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $loadedADGroup.Members | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $loadedADGroup.Members | Should -Contain "CN=childUser3ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        ($loadedADGroup.Members | Measure-Object).Count | Should -Be 3
     }
 
     It 'Can Remove-ADGroupMember' {
@@ -79,7 +79,7 @@ Describe 'ADGroup Membership' -Tags Integration {
         $groupCode = 3
         $testGroupName = "parentGroup$groupCode"
         $newGroup = New-ADGroup @ConnectionParam -Name $testGroupName -Verbose:$VerbosePreference -PassThru
-        $newGroup.member.Count | Should -Be 0
+        ($newGroup.Members | Measure-Object).Count | Should -Be 0
 
         $testUser1Name = "childUser1ForGroup$groupCode"
         $testUser1 = New-ADUser @ConnectionParam -Name $testUser1Name -Verbose:$VerbosePreference -PassThru
@@ -95,9 +95,9 @@ Describe 'ADGroup Membership' -Tags Integration {
 
         ## test fetch from AD
         $loadedADGroup = Get-ADGroup @ConnectionParam -Identity $newGroup.distinguishedName
-        $loadedADGroup.member | Should -Not -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
-        $loadedADGroup.member | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
-        $loadedADGroup.member.Count | Should -Be 1
+        $loadedADGroup.Members | Should -Not -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        $loadedADGroup.Members | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
+        ($loadedADGroup.Members | Measure-Object).Count | Should -Be 1
     }
 
     It 'Can Get-ADGroupMember' {
@@ -105,7 +105,7 @@ Describe 'ADGroup Membership' -Tags Integration {
         $groupCode = 4
         $testGroupName = "parentGroup$groupCode"
         $newGroup = New-ADGroup @ConnectionParam -Name $testGroupName -Verbose:$VerbosePreference -PassThru
-        $newGroup.member.Count | Should -Be 0
+        ($newGroup.Members | Measure-Object).Count | Should -Be 0
 
         $testUser1Name = "childUser1ForGroup$groupCode"
         $newUser1 = New-ADUser @ConnectionParam -Name $testUser1Name -Verbose:$VerbosePreference -PassThru
@@ -125,7 +125,7 @@ Describe 'ADGroup Membership' -Tags Integration {
         ## test fetch from AD
         $members = Get-ADGroupMember @ConnectionParam -Identity $testGroupName -Verbose:$VerbosePreference
         $memberDNs = $members | ForEach-Object {
-            $_.distinguishedName.Value
+            $_.DistinguishedName
         }
         $memberDNs | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
         $memberDNs | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
@@ -135,7 +135,7 @@ Describe 'ADGroup Membership' -Tags Integration {
         ## test fetch from AD recursively
         $memberDNs = Get-ADGroupMember @ConnectionParam -Identity $testGroupName -Verbose:$VerbosePreference -Recursive | 
             ForEach-Object {
-                $_.distinguishedName.Value
+                $_.DistinguishedName
             }
         $memberDNs | Should -Contain "CN=childUser1ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"
         $memberDNs | Should -Contain "CN=childUser2ForGroup$groupCode,CN=Users,DC=samdom,DC=example,DC=com"

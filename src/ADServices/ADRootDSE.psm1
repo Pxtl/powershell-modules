@@ -28,6 +28,8 @@ function Get-ADRootDSE {
         $response = $ldapConnection.SendRequest($searchRequest)
 
         # output
-        ConvertFrom-LDAPSearchResponse $response
+        ConvertFrom-LDAPSearchResponse $response ${function:Convert-ADObjectPropertyTable}
     }
 }
+
+

@@ -36,13 +36,7 @@ function Get-ADUser {
         [PSCredential] $Credential = $null
     )
     process {
-        $entries = Get-ADObject 'User' @PSBoundParameters
-        foreach ($entry in $entries) {
-            Update-ADUserEntry $entry
-            
-            # output
-            $entry
-        }
+        Get-ADObject 'User' @PSBoundParameters -ObjectPropertyConverter ${function:Convert-ADUserPropertyTable}
     }
 }
 
@@ -73,7 +67,7 @@ function New-ADUser {
         [Parameter()]
         [Nullable[bool]] $Enabled,
 
-        # A hashtable of properties to set on the user.
+        # A hashtable of LDAP attributes to set on the user.
         [Parameter()]
         [hashtable] $OtherAttributes,
 
@@ -109,8 +103,7 @@ function New-ADUser {
             @commonParams
 
         if (($null -ne $Enabled) -or ($OtherAttributes)) {
-            $entry = Set-ADUser -Identity $entry.distinguishedName -Enabled $Enabled -OtherAttributes $OtherAttributes -Server $Server -Credential $Credential -PassThru @commonParams
-            Update-ADUserEntry $entry @commonParams
+            $entry = Set-ADUser -Identity $entry.DistinguishedName -Enabled $Enabled -Replace $OtherAttributes -Server $Server -Credential $Credential -PassThru @commonParams
         }
         
         if ($PassThru) {
@@ -143,9 +136,17 @@ function Set-ADUser {
         [Parameter()]
         [Nullable[bool]] $Enabled,
 
-        # A hashtable of properties to set on the user.
+        # A hashtable of LDAP properties to add on the entry.
         [Parameter()]
-        [hashtable] $OtherAttributes,
+        [hashtable] $Add,
+
+        # A hashtable of LDAP properties to remove from the entry.
+        [Parameter()]
+        [hashtable] $Remove,
+
+        # A hashtable of LDAP properties to replace on the entry.
+        [Parameter()]
+        [hashtable] $Replace,
 
         # The domain controller to query.
         [Parameter()]
@@ -164,26 +165,27 @@ function Set-ADUser {
         }
     }
     process {
-        $entry = Get-ADObject 'User' -Identity $Identity -Server $Server -Credential $Credential
-        if (($null -ne $Enabled) -or ($OtherAttributes)) {
-            Set-ADUserEntry $entry -Enabled $Enabled -OtherAttributes $OtherAttributes @commonParams
+        $entry = Get-ADUser -Identity $Identity -Server $Server -Credential $Credential
+        if (($null -ne $Enabled) -or $Add -or $Remove -or $Replace) {
+            Set-ADUserEntry $entry -Enabled $Enabled @commonParams
 
-            # clone $OtherAttributes so we can modify it here
-            $replacementsTable = if ($OtherAttributes) {
-                $OtherAttributes.Clone()
+            # clone $Replace so we can modify it here
+            $replacementsTable = if ($Replace) {
+                $Replace.Clone()
             } else {
                 @{}
             }
-            $replacementsTable['userAccountControl'] = $entry.userAccountControl
+            # using Add to force error if "replace" already has GroupType.
+            $replacementsTable.Add('userAccountControl', $entry.Properties['userAccountControl'])
 
-            Set-ADObject 'User' -Identity $Identity -Replace $replacementsTable -Server $Server -Credential $Credential @commonParams
-            Update-ADUserEntry $entry
+            Set-ADObject 'User' -Identity $Identity -Add $Add -Remove $Remove -Replace $replacementsTable -Server $Server -Credential $Credential @commonParams
+            Set-ADObjectEntry $entry -Add $Add -Remove $Remove -Replace $replacementsTable @commonParams
+            Update-ADUserEntry $entry @commonParams
         } else {
             Write-Warning "Can't update user '$Identity', nothing to do."
         }
 
         if ($PassThru) {
-
             # output
             $entry
         }
@@ -245,11 +247,38 @@ function Test-ADUser {
 
 
 #region private
-<#
-.SYNOPSIS
-    Set the members of an AD User directory entry PSObject
-#>
+function Update-ADUserEntry {
+    <#
+    .SYNOPSIS
+        Recalculate the local properties of a directory entry PSCustomObject representing an AD user.
+    #>
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to LDAPEntry func'
+    )]
+    [OutputType([string])]
+    [CmdletBinding(SupportsShouldProcess)]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [PSCustomObject] $Entry
+    )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
+    process {
+        Update-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -NotePropertyName Enabled -TrueValue $false -FalseValue $true @commonParams
+        Update-ADObjectEntry $Entry -ObjectPropertyConverter ${function:Convert-ADUserPropertyTable} @commonParams
+    }
+}
+
+
 function Set-ADUserEntry {
+    <#
+    .SYNOPSIS
+        Set the members of an AD User directory entry PSCustomObject
+    #>
     [Diagnostics.CodeAnalysis.SuppressMessage("PSShouldProcess","",Scope="Function")] # -WhatIf passed through to ADObject func
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -257,18 +286,110 @@ function Set-ADUserEntry {
         [PSCustomObject] $Entry,
 
         [Parameter()]
-        [Nullable[bool]] $Enabled,
-
-        [Parameter()]
-        [Hashtable] $OtherAttributes
+        [Nullable[bool]] $Enabled
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
         if ($null -ne $Enabled) {
-            Set-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -Value $Enabled -WhatIf:$WhatIfPreference
+            Set-LDAPEntryFlag $Entry userAccountControl $UserAccountControl_ACCOUNT_DISABLED -Value (-not $Enabled) @commonParams
         }
-        if ($OtherAttributes) {
-            Set-LDAPEntryPropertyTable $Entry $OtherAttributes -WhatIf:$WhatIfPreference
+        Update-ADObjectEntry $Entry -ObjectPropertyConverter ${function:Convert-ADUserPropertyTable}
+    }
+}
+
+
+function Convert-ADUserPropertyTable {
+    <#
+    .SYNOPSIS
+        Takes a table of raw LDAP properties and converts them into a table of
+        object properties for an ADObject.
+    .NOTES
+        Adapted from https://learn.microsoft.com/en-us/archive/technet-wiki/12037.active-directory-get-aduser-default-band-extended-properties
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [hashtable] $LdapAttributeTable,
+        [hashtable] $ObjectPropertyTable
+    )
+    process {
+        if(-not $ObjectPropertyTable) {
+            $ObjectPropertyTable = @{}
         }
+
+        Convert-ADObjectPropertyTable -LdapAttributeTable $LdapAttributeTable -ObjectPropertyTable $ObjectPropertyTable | Out-Null
+
+        # regex used to initially create this
+        # (\w+)\t([a-zA-Z0-9 ()]+)\t(\w+)\t(.*)
+        # $ObjectPropertyTable['$1'] = $LdapAttributeTable['$4']
+        $ObjectPropertyTable['AccountExpirationDate'] = Convert-ADDateTime $LdapAttributeTable['accountExpires']
+        $ObjectPropertyTable['AccountLockoutTime'] = Convert-ADDateTime $LdapAttributeTable['lockoutTime']
+        $ObjectPropertyTable['AccountNotDelegated'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_NOT_DELEGATED)
+        $ObjectPropertyTable['AllowReversiblePasswordEncryption'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_ENCRYPTED_TEXT_PWD_ALLOWED)
+        $ObjectPropertyTable['BadLogonCount'] = $LdapAttributeTable['badPwdCount']
+        $ObjectPropertyTable['CannotChangePassword'] = $LdapAttributeTable['nTSecurityDescriptor']
+        $ObjectPropertyTable['Certificates'] = $LdapAttributeTable['userCertificate']
+        $ObjectPropertyTable['ChangePasswordAtLogon'] = $LdapAttributeTable['pwdLastSet'] -eq 0
+        $ObjectPropertyTable['City'] = $LdapAttributeTable['l']
+        $ObjectPropertyTable['Company'] = $LdapAttributeTable['company']
+        $ObjectPropertyTable['Country'] = $LdapAttributeTable['c'] # (2 character abbreviation)
+        $ObjectPropertyTable['Department'] = $LdapAttributeTable['department']
+        $ObjectPropertyTable['Division'] = $LdapAttributeTable['division']
+        $ObjectPropertyTable['DoesNotRequirePreAuth'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_DONT_REQ_PREAUTH)
+        $ObjectPropertyTable['EmailAddress'] = $LdapAttributeTable['mail']
+        $ObjectPropertyTable['EmployeeID'] = $LdapAttributeTable['employeeID']
+        $ObjectPropertyTable['EmployeeNumber'] = $LdapAttributeTable['employeeNumber']
+        $ObjectPropertyTable['Enabled'] = -not ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_ACCOUNT_DISABLED)
+        $ObjectPropertyTable['Fax'] = $LdapAttributeTable['facsimileTelephoneNumber']
+        $ObjectPropertyTable['GivenName'] = $LdapAttributeTable['givenName']
+        $ObjectPropertyTable['HomeDirectory'] = $LdapAttributeTable['homeDirectory']
+        $ObjectPropertyTable['HomedirRequired'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_HOMEDIR_REQUIRED)
+        $ObjectPropertyTable['HomeDrive'] = $LdapAttributeTable['homeDrive']
+        $ObjectPropertyTable['HomePage'] = $LdapAttributeTable['wWWHomePage']
+        $ObjectPropertyTable['HomePhone'] = $LdapAttributeTable['homePhone']
+        $ObjectPropertyTable['Initials'] = $LdapAttributeTable['initials']
+        $ObjectPropertyTable['LastBadPasswordAttempt'] = Convert-ADDateTime $LdapAttributeTable['badPasswordTime']
+        $ObjectPropertyTable['LastLogonDate'] = Convert-ADDateTime $LdapAttributeTable['lastLogonTimeStamp']
+        $ObjectPropertyTable['LockedOut'] = [bool] ($LdapAttributeTable['msDS-User-Account-Control-Computed'] -band $UserAccountControl_LOCKOUT)
+        $ObjectPropertyTable['LogonWorkstations'] = $LdapAttributeTable['userWorkstations']
+        $ObjectPropertyTable['Manager'] = $LdapAttributeTable['manager']
+        $ObjectPropertyTable['MemberOf'] = $LdapAttributeTable['memberOf']
+        $ObjectPropertyTable['MNSLogonAccount'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_MNS_LOGON_ACCOUNT)
+        $ObjectPropertyTable['MobilePhone'] = $LdapAttributeTable['mobile']
+        $ObjectPropertyTable['Office'] = $LdapAttributeTable['physicalDeliveryOfficeName']
+        $ObjectPropertyTable['OfficePhone'] = $LdapAttributeTable['telephoneNumber']
+        $ObjectPropertyTable['Organization'] = $LdapAttributeTable['o']
+        $ObjectPropertyTable['OtherName'] = $LdapAttributeTable['middleName']
+        $ObjectPropertyTable['PasswordExpired'] = [bool] ($LdapAttributeTable['msDS-User-Account-Control-Computed'] -band $UserAccountControl_PASSWORD_EXPIRED) # see note 1
+        $ObjectPropertyTable['PasswordLastSet'] = Convert-ADDateTime $LdapAttributeTable['pwdLastSet']
+        $ObjectPropertyTable['PasswordNeverExpires'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_DONT_EXPIRE_PASSWORD)
+        $ObjectPropertyTable['PasswordNotRequired'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_PASSWD_NOTREQD)
+        $ObjectPropertyTable['POBox'] = $LdapAttributeTable['postOfficeBox']
+        $ObjectPropertyTable['PostalCode'] = $LdapAttributeTable['postalCode']
+        $ObjectPropertyTable['PrimaryGroup'] = $LdapAttributeTable['Group with primaryGroupToken']
+        $ObjectPropertyTable['ProfilePath'] = $LdapAttributeTable['profilePath']
+        $ObjectPropertyTable['SamAccountName'] = $LdapAttributeTable['sAMAccountName']
+        $ObjectPropertyTable['ScriptPath'] = $LdapAttributeTable['scriptPath']
+        $ObjectPropertyTable['ServicePrincipalNames'] = $LdapAttributeTable['servicePrincipalName']
+        $ObjectPropertyTable['SID'] = [string] $LdapAttributeTable['objectSID']
+        $ObjectPropertyTable['SIDHistory'] = $LdapAttributeTable['sIDHistory']
+        $ObjectPropertyTable['SmartcardLogonRequired'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_SMARTCARD_REQUIRED)
+        $ObjectPropertyTable['State'] = $LdapAttributeTable['st']
+        $ObjectPropertyTable['StreetAddress'] = $LdapAttributeTable['streetAddress']
+        $ObjectPropertyTable['Surname'] = $LdapAttributeTable['sn']
+        $ObjectPropertyTable['Title'] = $LdapAttributeTable['title']
+        $ObjectPropertyTable['TrustedForDelegation'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_TRUSTED_FOR_DELEGATION)
+        $ObjectPropertyTable['TrustedToAuthForDelegation'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_TRUSTED_TO_AUTH_FOR_DELEGATION)
+        $ObjectPropertyTable['UseDESKeyOnly'] = [bool] ($LdapAttributeTable['userAccountControl'] -band $UserAccountControl_USE_DES_KEY_ONLY)
+        $ObjectPropertyTable['UserPrincipalName'] = $LdapAttributeTable['userPrincipalName']
+
+        #output
+        $ObjectPropertyTable
     }
 }
 #endregion

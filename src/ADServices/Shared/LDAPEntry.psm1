@@ -1,6 +1,9 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
 
+# Note: Everything in this file should be considered semi-deprecated.  Previous
+# versions of this AD lib were more focused on mutating entries than using them
+# as immutable record objects.
 
 function Update-LDAPEntryFlag {
     <#
@@ -24,7 +27,7 @@ function Update-LDAPEntryFlag {
 
         # The property name of the entry to read the note flag from.
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
-        [string] $BitFieldProperty,
+        [string] $BitFieldLDAPProperty,
 
         # The value to bit-test against the entry property.
         [Parameter(Mandatory, ValueFromPipelineByPropertyName)]
@@ -44,20 +47,16 @@ function Update-LDAPEntryFlag {
         [Parameter(ValueFromPipelineByPropertyName)]
         [object] $FalseValue = $null
     )
-    begin {
-        $commonParams = @{
-            WhatIf = $WhatIfPreference
-            Verbose = $VerbosePreference
-        }
-    }
     process {
-        [bool] $isFlagTrue = Get-LDAPEntryFlag $Entry $BitFieldProperty $BitMask
+        [bool] $isFlagTrue = Get-LDAPEntryFlag $Entry $BitFieldLDAPProperty $BitMask
         
         $noteValue = if ($isFlagTrue) {
             $TrueValue
         } else {
             $FalseValue
         }
+        # TODO: Switch to regular property setting now that properties are all real.
+
         # $noteValue will only be $null if the bitmask returned false *and*
         # there was no FalseValue provided.
         if ($null -ne $noteValue) {
@@ -84,17 +83,17 @@ function Get-LDAPEntryFlag {
 
         # The property name of the entry to read the note flag from.
         [Parameter(Mandatory)]
-        [string] $BitFieldProperty,
+        [string] $BitFieldLDAPProperty,
 
         # The value to bit-test against the entry property.
         [Parameter(Mandatory)]
         [int] $BitMask
     )
     process {
+        $attribute = $Entry.Attributes[$BitFieldLDAPProperty]
+        
         # output
-        $property = $Entry | Select-Object -ExpandProperty $BitFieldProperty
-
-        [bool] ($property -band $BitMask)
+        [bool] ($attribute -band $BitMask)
     }
 }
 
@@ -102,10 +101,10 @@ function Get-LDAPEntryFlag {
 function Set-LDAPEntryFlag {
     <#
     .SYNOPSIS
-        Set or clears bitfield flag within the properties of a given
-        directory entry PSCustomObject.  This operation happens offline and is not sent to the
-        server until Set-ADObject is called with the explicit members to
-        replace.
+        Set or clears bitfield flag within the LDAP attributes of a given
+        directory entry PSCustomObject.  This operation happens offline and is
+        not sent to the server until Set-ADObject is called with the explicit
+        members to replace.
     #>
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -115,7 +114,7 @@ function Set-LDAPEntryFlag {
 
         # The property name of the entry to read the note flag from.
         [Parameter(Mandatory)]
-        [string] $BitFieldProperty,
+        [string] $BitFieldLDAPProperty,
 
         # The value to bit-test against the entry property.
         [Parameter(Mandatory)]
@@ -125,22 +124,22 @@ function Set-LDAPEntryFlag {
         [bool] $Value
     )
     process {
-        $targetSummary = "'$($entry.DistinguishedName)' property '$BitFieldProperty' flag '$("0x" + $BitMask.ToString('X'))' to '$value'"
+        $targetSummary = "'$($Entry.DistinguishedName)' property '$BitFieldLDAPProperty' flag '$("0x" + $BitMask.ToString('X'))' to '$value'"
         Write-Verbose "$($MyInvocation.MyCommand): $targetSummary..."
         if ($PSCmdlet.ShouldProcess($targetSummary)) {
-            $entry.$BitFieldProperty = if ($Value) {
+            $Entry.Properties[$BitFieldLDAPProperty] = if ($Value) {
                 # true
-                $entry.$BitFieldProperty -bor $BitMask
+                $Entry.Properties[$BitFieldLDAPProperty] -bor $BitMask
             } else {
                 # false
-                $entry.$BitFieldProperty -band (-bnot $BitMask)
+                $Entry.Properties[$BitFieldLDAPProperty] -band (-bnot $BitMask)
             }
         }
     }
 }
 
 
-function Set-LDAPEntryPropertyTable {
+function Set-LDAPEntryAttributeTable {
     <#
     .SYNOPSIS
         Set properties of a given directory entry PSCustomObject from the given Properties hashtable
@@ -152,14 +151,22 @@ function Set-LDAPEntryPropertyTable {
         [PSCustomObject] $Entry,
 
         [Parameter(Mandatory)]
-        [Hashtable] $OtherAttributes
+        [Hashtable] $AttributeTable
     )
     begin {
         if ($PSCmdlet.ShouldProcess($Entry.distinguishedName)) {
-            Write-Verbose "Setting properties of $Type '$($Entry.distinguishedName)"
-            foreach ($key in $OtherAttributes.Keys) {
-                $entry.$key = $OtherAttributes[$key]
+            # Add raw LDAP attributes as hashtable member of object.
+            if ($Entry | Get-Member Attributes) {
+                $Entry.PSObject.Properties.Remove('Attributes')
             }
+            $Entry | Add-Member -NotePropertyName Attributes -NotePropertyValue $AttributeTable
+
+            # A bit of backwards compatibility to DirectoryEntry, which calls
+            # the attribute collection "Properties".
+            if ($Entry | Get-Member Properties) {
+                $Entry.PSObject.Properties.Remove('Properties')
+            }
+            $Entry | Add-Member -NotePropertyName Properties -NotePropertyValue $AttributeTable
         }
     }
 }
