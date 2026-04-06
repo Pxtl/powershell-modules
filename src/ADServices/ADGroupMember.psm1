@@ -54,13 +54,11 @@ function Add-ADGroupMember {
             # DistinguishedNames.
             if ($group -and $newMember) {
                 [string] $memberKey = $newMember.DistinguishedName
-                $targetSummary = "adding $newMemberType '$memberKey' to group '$Identity'"
-                if ($PSCmdlet.ShouldProcess($targetSummary)) {
+                if ($PSCmdlet.ShouldProcess("adding $newMemberType '$memberKey' to group '$Identity'")) {
                     $additions = @{ member = $memberKey }
                     Set-ADObject 'Group' -Identity $Identity -Add $additions -Server $Server -Credential $Credential @commonParams
                     Set-ADObjectEntry $group -Add $additions @commonParams
                 }
-                Write-Verbose "$($MyInvocation.MyCommand): $targetSummary"
             } else {
                 Write-Error "Object '$MemberIdentity' not found."
             }

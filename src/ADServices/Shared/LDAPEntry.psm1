@@ -124,9 +124,7 @@ function Set-LDAPEntryFlag {
         [bool] $Value
     )
     process {
-        $targetSummary = "'$($Entry.DistinguishedName)' property '$BitFieldLDAPProperty' flag '$("0x" + $BitMask.ToString('X'))' to '$value'"
-        Write-Verbose "$($MyInvocation.MyCommand): $targetSummary..."
-        if ($PSCmdlet.ShouldProcess($targetSummary)) {
+        if ($PSCmdlet.ShouldProcess("'$($Entry.DistinguishedName)' property '$BitFieldLDAPProperty' flag '$("0x" + $BitMask.ToString('X'))' to '$value'")) {
             $Entry.Properties[$BitFieldLDAPProperty] = if ($Value) {
                 # true
                 $Entry.Properties[$BitFieldLDAPProperty] -bor $BitMask

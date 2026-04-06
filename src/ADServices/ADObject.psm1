@@ -165,10 +165,7 @@ function New-ADObject {
         }
     }
     process {
-        $targetSummary = "$Type '$Name' in container '$Path'"
-        if ($PSCmdlet.ShouldProcess($targetSummary)) {
-            Write-Verbose "$($MyInvocation.MyCommand): $targetSummary"           
-
+        if ($PSCmdlet.ShouldProcess("$Type '$Name' in container '$Path'")) {   
             if ($DoSAMAccountName) {
                 $existing = Get-ADObject -LDAPFilter "sAMAccountName=$Name" -ObjectPropertyConverter $ObjectPropertyConverter -Server $Server -Credential $Credential
                 if (($existing | Measure-Object).Count) {
@@ -250,7 +247,6 @@ function Set-ADObject {
         $entry = Get-ADObject $Type -Identity $Identity -ObjectPropertyConverter $ObjectPropertyConverter  -Server $Server -Credential $Credential
         if (($entry | Measure-Object).Count -eq 1) {
             if ($PSCmdlet.ShouldProcess($Identity, "Modifying $Type '$($entry.DistinguishedName)'")) {
-                Write-Verbose "Modifying $Type '$($entry.DistinguishedName)'."
                 $attributeModifications = [Collections.ArrayList]::new()
 
                 if ($Add) {
@@ -321,10 +317,9 @@ function Remove-ADObject {
         [PSCredential] $Credential
     )
     process {
-        if ($PSCmdlet.ShouldProcess($Identity, "Removing $Type")) {
+        if ($PSCmdlet.ShouldProcess($Identity, "Removing $Type '$($entry.distinguishedName)'")) {
             $entry = Get-ADObject $Type -Identity $Identity -Server $Server -Credential $Credential
             if (($entry | Measure-Object).Count -eq 1) {
-                Write-Verbose "Removing $Type '$($entry.distinguishedName)'."
                 $ldapConnection = New-LDAPConnection $Server $Credential
 
                 $deleteRequest = [DirectoryServices.Protocols.DeleteRequest]::new(
@@ -404,7 +399,7 @@ function Set-ADObjectEntry {
         [hashtable] $Replace
     )
     process {
-        if ($PSCmdlet.ShouldProcess([string] $Entry)) {
+        if ($PSCmdlet.ShouldProcess($Entry.DistinguishedName)) {
             if ($Add) {
                 foreach ($attrPair in $Add.GetEnumerator()) {
                     # See https://ldap.com/the-ldap-modify-operation/ to
