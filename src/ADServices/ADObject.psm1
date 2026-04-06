@@ -472,16 +472,19 @@ function Update-ADObjectEntry {
         if (-not $ObjectPropertyConverter) {
             $ObjectPropertyConverter = ${function:Convert-ADObjectPropertyTable}
         }
-        $commonParams = @{
-            WhatIf = $WhatIfPreference
-            Verbose = $VerbosePreference
-        }
     }
     process {
         # Convert the current LDAP Attributes hashtable into Object Properties hashtable
         $objectPropertyTable = Invoke-Command $ObjectPropertyConverter -ArgumentList @($Entry.Attributes)
 
-        # apply the resulting Object Properties Table to the given object's properties
-        Set-Object $entry -PropertyTable $objectPropertyTable @commonParams
+        if ($PSCmdlet.ShouldProcess($Entry.DistinguishedName)) {
+            # apply the resulting Object Properties Table to the given object's properties
+            $objectPropertyTable.Keys |
+                ForEach-Object { 
+                    if ($Entry.PSObject.Properties.Name -contains $_) { 
+                        $Entry.$_ = $objectPropertyTable[$_] 
+                    } 
+                }
+        }
     }
 }

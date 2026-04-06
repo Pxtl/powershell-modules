@@ -50,7 +50,7 @@ function New-ADOrganizationalUnit {
     .SYNOPSIS
         Creates a new Active Directory OrganizationalUnit.
     .DESCRIPTION
-        Creates a new Active Directory OrganizationalUnit using System.DirectoryServices.
+        Creates a new Active Directory OrganizationalUnit using System.DirectoryServices.Protocols
     .OUTPUTS
         [PSCustomObject]
     #>
@@ -112,7 +112,7 @@ function Set-ADOrganizationalUnit {
     .SYNOPSIS
         Modifies an Active Directory OrganizationalUnit.
     .DESCRIPTION
-        Modifies an Active Directory OrganizationalUnit using System.DirectoryServices.
+        Modifies an Active Directory OrganizationalUnit using System.DirectoryServices.Protocols
     .OUTPUTS
         [PSCustomObject]
     #>
@@ -163,7 +163,7 @@ function Remove-ADOrganizationalUnit {
     .SYNOPSIS
         Removes an Active Directory OrganizationalUnit.
     .DESCRIPTION
-        Removes an Active Directory OrganizationalUnit using System.DirectoryServices.
+        Removes an Active Directory OrganizationalUnit using System.DirectoryServices.Protocols
     .OUTPUTS
         None
     #>
@@ -194,7 +194,7 @@ function Test-ADOrganizationalUnit {
     .SYNOPSIS
         Tests the existence of an Active Directory OrganizationalUnit.
     .DESCRIPTION
-        Tests the existence of an Active Directory OrganizationalUnit using System.DirectoryServices.
+        Tests the existence of an Active Directory OrganizationalUnit using System.DirectoryServices.Protocols
     .OUTPUTS
         [bool]
     #>

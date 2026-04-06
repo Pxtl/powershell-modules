@@ -8,7 +8,7 @@ function Get-ADGroup {
     .SYNOPSIS
         Retrieves an Active Directory group.
     .DESCRIPTION
-        Retrieves an Active Directory group using System.DirectoryServices.
+        Retrieves an Active Directory group using System.DirectoryServices.Protocols
     .OUTPUTS
         [PSCustomObject], none if not found.
     #>
@@ -50,7 +50,7 @@ function New-ADGroup {
     .SYNOPSIS
         Creates a new Active Directory group.
     .DESCRIPTION
-        Creates a new Active Directory group using System.DirectoryServices.
+        Creates a new Active Directory group using System.DirectoryServices.Protocols
     .OUTPUTS
         [PSCustomObject] if PassThru is enabled.
     #>
@@ -129,7 +129,7 @@ function Set-ADGroup {
     .SYNOPSIS
         Modifies an Active Directory group.
     .DESCRIPTION
-        Modifies an Active Directory group using System.DirectoryServices.
+        Modifies an Active Directory group using System.DirectoryServices.Protocols
     .OUTPUTS
         [PSCustomObject] if PassThru is enabled.
     #>
@@ -214,7 +214,7 @@ function Remove-ADGroup {
     .SYNOPSIS
         Removes an Active Directory group.
     .DESCRIPTION
-        Removes an Active Directory group using System.DirectoryServices.
+        Removes an Active Directory group using System.DirectoryServices.Protocols
     .OUTPUTS
         None
     #>
@@ -247,7 +247,7 @@ function Test-ADGroup {
     .SYNOPSIS
         Tests the existence of an Active Directory group.
     .DESCRIPTION
-        Tests the existence of an Active Directory group using System.DirectoryServices.
+        Tests the existence of an Active Directory group using System.DirectoryServices.Protocols
     .OUTPUTS
         [bool]
     #>

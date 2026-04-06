@@ -75,15 +75,6 @@ function ConvertFrom-LDAPSearchResponse {
                 }
             }
 
-            # DEBUG
-            # Do standard conversions.
-            # $attributesTable['objectClass'] = ($attributesTable['objectClass'] | Foreach-Object {
-            #     if ($_) { [Text.Encoding]::UTF8.GetString($_) }
-            # })
-            # $attributesTable['objectGUID'] = if ($attributesTable['objectGUID']) { 
-            #     [Guid]::new($attributesTable['objectGUID']) 
-            # }
-
             # Use the provided converter to convert the attributes hashtable
             # into object properties, the make the object.
             $ObjectPropertyTable = Invoke-Command -ScriptBlock $ObjectPropertyConverter -ArgumentList $attributesTable
@@ -128,56 +119,6 @@ function New-LDAPConnection {
         
         #output
         $ldapConnection
-    }
-}
-
-
-function Get-LdapSearcher {
-    [OutputType([DirectoryServices.DirectorySearcher])]
-    [CmdletBinding()]
-    param (
-        # Path of the OU or container to search within, in DN form.
-        [Parameter(ValueFromPipelineByPropertyName)]
-        [string] $SearchBase,
-
-        # Path of the OU or container to search within, in DN form but without
-        # the DC components. Only used when SearchBase is not provided.
-        [Parameter(ValueFromPipelineByPropertyName)]
-        [string] $DefaultRelativeBase,
-
-        [Parameter(ValueFromPipelineByPropertyName)]
-        [string] $Server,
-
-        [Parameter(ValueFromPipelineByPropertyName)]
-        [PSCredential] $Credential
-    )
-    process {
-        $ldapPath = if ($Server) { "LDAP://$Server" } else { "LDAP://" }
-        $domainEntry = if ($Credential) {
-            [DirectoryServices.DirectoryEntry]::new($ldapPath, $Credential.UserName, $Credential.GetNetworkCredential().Password)
-        } else {
-            [DirectoryServices.DirectoryEntry]::new($ldapPath)
-        }
-
-        if (-not $SearchBase) {
-            $domainDN = $domainEntry.distinguishedName
-            $SearchBase = if ($DefaultRelativeBase) {
-                "$DefaultRelativeBase,$domainDN"
-            } else {
-                $null
-            }
-        }
-        if ($SearchBase) {
-            $ldapPath += "/$SearchBase"
-        }
-        Write-Verbose "Creating DirectorySearcher for LDAP path $ldapPath"
-        $searchBaseEntry = if ($Credential) {
-            [DirectoryServices.DirectoryEntry]::new($ldapPath, $Credential.UserName, $Credential.GetNetworkCredential().Password)
-        } else {
-            # output
-            [DirectoryServices.DirectoryEntry]::new($ldapPath)
-        }
-        [DirectoryServices.DirectorySearcher]::new($searchBaseEntry)
     }
 }
 
@@ -289,36 +230,6 @@ function Add-DirectoryAttributeModification {
         if ($PassThru) {
             # output
             $modification
-        }
-    }
-}
-
-
-function Set-Object {
-    <#
-    .SYNOPSIS
-        Update properties of the given object with the given hashtable.  Errors
-        out if a hashtable key does not match an object property.
-    #>
-    [CmdletBinding(SupportsShouldProcess)]
-    param (
-        # PSCustomObject to modify.
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [PSCustomObject] $Object,
-
-        # Hashtable of parameters to replace the object properties of the custom
-        # object.  Will throw error if object is missing any property keys.
-        [Parameter()]
-        [hashtable] $PropertyTable
-    )
-    process {
-        if ($PSCmdlet.ShouldProcess([string] $Object)) {
-            $PropertyTable.Keys |
-                ForEach-Object { 
-                    if ($Object.PSObject.Properties.Name -contains $_) { 
-                        $Object.$_ = $PropertyTable[$_] 
-                    } 
-                }
         }
     }
 }
