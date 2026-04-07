@@ -1,6 +1,7 @@
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
-
+. $PSScriptRoot\Shared\Variables.ps1
+Add-Type -AssemblyName 'System.DirectoryServices.Protocols'
 
 function Get-ADOrganizationalUnit {
     <#
@@ -8,9 +9,9 @@ function Get-ADOrganizationalUnit {
         Retrieves an Active Directory OrganizationalUnit.
     .DESCRIPTION
         Retrieves an Active Directory OrganizationalUnit using
-        System.DirectoryServices.
+        System.DirectoryServices.Protocols.
     .OUTPUTS
-        [PSCustomObject], none if not found.
+        [PSCustomObject], $null if not found.
     #>
     [OutputType([PSCustomObject])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
@@ -34,13 +35,7 @@ function Get-ADOrganizationalUnit {
         [PSCredential] $Credential = $null
     )
     process {
-        $entries = Get-ADObject 'organizationalUnit' @PSBoundParameters
-        foreach ($entry in $entries) {
-            Update-ADOrganizationalUnitEntry $entry
-            
-            # output
-            $entry
-        }
+        Get-ADObject 'organizationalUnit' @PSBoundParameters -ObjectPropertyConverter ${function:Convert-ADOrganizationalUnitPropertyTable}
     }
 }
 
@@ -52,7 +47,7 @@ function New-ADOrganizationalUnit {
     .DESCRIPTION
         Creates a new Active Directory OrganizationalUnit using System.DirectoryServices.Protocols
     .OUTPUTS
-        [PSCustomObject]
+        [PSCustomObject] if PassThru is enabled.
     #>
     [Diagnostics.CodeAnalysis.SuppressMessage(
         'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to ADObject func'
@@ -81,25 +76,26 @@ function New-ADOrganizationalUnit {
         [switch] $PassThru
     )
     begin {
-
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
     }
     process {
         $entry = New-ADObject 'organizationalUnit' 'OU' $Name `
             -Path $Path `
             -DefaultRelativePath $null `
+            -ObjectPropertyConverter ${function:Convert-ADOrganizationalUnitPropertyTable} `
             -Server $Server `
             -Credential $Credential `
-            -WhatIf:$WhatIfPreference `
-            -Verbose:$VerbosePreference
+            -PassThru `
+            @commonParams
 
         if ($OtherAttributes) {
-            Set-ADOrganizationalUnitEntry $entry -OtherAttributes $OtherAttributes -WhatIf:$WhatIfPreference
-            $entry.CommitChanges()
+            $entry = Set-ADOrganizationalUnit -Identity $entry.DistinguishedName -Replace $OtherAttributes -Server $Server -Credential $Credential @commonParams
         }
 
         if ($PassThru) {
-            Update-ADOrganizationalUnitEntry $entry
-
             # output
             $entry
         }
@@ -125,9 +121,17 @@ function Set-ADOrganizationalUnit {
         [Parameter(Mandatory, ValueFromPipeline)]
         [string] $Identity,
 
-        # A hashtable of LDAP attributes to set on the OrganizationalUnit.
+        # A hashtable of LDAP properties to add on the entry.
         [Parameter()]
-        [hashtable] $OtherAttributes,
+        [hashtable] $Add,
+
+        # A hashtable of LDAP properties to remove from the entry.
+        [Parameter()]
+        [hashtable] $Remove,
+
+        # A hashtable of LDAP properties to replace on the entry.
+        [Parameter()]
+        [hashtable] $Replace,
 
         # The domain controller to query.
         [Parameter()]
@@ -139,18 +143,23 @@ function Set-ADOrganizationalUnit {
 
         [switch] $PassThru
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
-        $entry = Get-ADObject 'organizationalUnit' -Identity $Identity -Server $Server -Credential $Credential
-        if ($OtherAttributes) {
-            Set-ADOrganizationalUnitEntry $entry -OtherAttributes $OtherAttributes -WhatIf:$WhatIfPreference
-            $entry.CommitChanges()
+        $entry = Get-ADOrganizationalUnit -Identity $Identity -Server $Server -Credential $Credential
+        if ($Add -or $Remove -or $Replace) {
+            Set-ADObject 'organizationalUnit' -Identity $Identity -Add $Add -Remove $Remove -Replace $Replace -Server $Server -Credential $Credential @commonParams
+            Set-ADObjectEntry $entry -Replace $OtherAttributes @commonParams
+            Update-ADOrganizationalUnitEntry $entry
         } else {
             Write-Warning "Can't update OrganizationalUnit '$Identity', nothing to do."
         }
 
         if ($PassThru) {
-            Update-ADOrganizationalUnitEntry $entry
-
             # output
             $entry
         }
@@ -220,23 +229,60 @@ function Test-ADOrganizationalUnit {
 
 #private
 function Update-ADOrganizationalUnitEntry {
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to LDAPEntry func'
+    )]
+    [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject] $Entry
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
-        # no-op.
+        Update-ADObjectEntry $Entry -ObjectPropertyConverter ${function:Convert-ADOrganizationalUnitPropertyTable} @commonParams
     }
 }
 
 
-#private
-function Set-ADOrganizationalUnitEntry {
+function Convert-ADOrganizationalUnitPropertyTable {
+    <#
+    .SYNOPSIS
+        Takes a table of raw LDAP properties and converts them into a table of
+        object properties for an ADOrganizationalUnit.
+    .NOTES
+        Adapted from https://learn.microsoft.com/en-us/archive/technet-wiki/12089.active-directory-get-adorganizationalunit-default-and-extended-properties
+    #>
+    [CmdletBinding()]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
-        [PSCustomObject] $Entry
+        [hashtable] $LdapAttributeTable,
+
+        [Parameter()]
+        [hashtable] $ObjectPropertyTable
     )
     process {
-        # no-op.
+        if (-not $ObjectPropertyTable) {
+            $ObjectPropertyTable = @{}
+        }
+
+        Convert-ADObjectPropertyTable -LdapAttributeTable $LdapAttributeTable -ObjectPropertyTable $ObjectPropertyTable | Out-Null
+
+        $ObjectPropertyTable['City'] = $LdapAttributeTable['l']
+        $ObjectPropertyTable['Country'] = $LdapAttributeTable['c']
+        $ObjectPropertyTable['LinkedGroupPolicyObjects'] = $LdapAttributeTable['gPLink']
+        $ObjectPropertyTable['ManagedBy'] = $LdapAttributeTable['managedBy']
+        # Name is already there from "Name" by default but is overridden by 'ou' in this case.
+        $ObjectPropertyTable['Name'] = $LdapAttributeTable['ou']
+        $ObjectPropertyTable['PostalCode'] = $LdapAttributeTable['postalCode']
+        $ObjectPropertyTable['State'] = $LdapAttributeTable['st']
+        $ObjectPropertyTable['StreetAddress'] = $LdapAttributeTable['streetAddress']
+
+        # output
+        $ObjectPropertyTable
     }
 }

@@ -11,8 +11,7 @@ function Get-ADUser {
         Retrieves an Active Directory user by their identity, which can be a
         distinguished name, GUID, SID, or sAMAccountName.  
     .OUTPUTS
-        [PSCustomObject]
-        # $null if not found.
+        [PSCustomObject], $null if not found.
     #>
     [OutputType([PSCustomObject])]
     [CmdletBinding(DefaultParameterSetName='Filter')]
@@ -50,7 +49,9 @@ function New-ADUser {
     .OUTPUTS
         [PSCustomObject] if PassThru is enabled.
     #>
-    [Diagnostics.CodeAnalysis.SuppressMessage("PSShouldProcess","",Scope="Function")] # -WhatIf passed through to ADObject func
+    [Diagnostics.CodeAnalysis.SuppressMessage(
+        "PSShouldProcess","",Scope="Function",Justification='-WhatIf passed through to ADObject func'
+    )]
     [OutputType([PSCustomObject])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
@@ -96,13 +97,14 @@ function New-ADUser {
         $entry = New-ADObject 'User' 'CN' $Name `
             -Path $Path `
             -DefaultRelativePath 'CN=Users' `
+            -ObjectPropertyConverter ${function:Convert-ADUserPropertyTable} `
             -Server $Server `
             -Credential $Credential `
             -DoSAMAccountName `
             -PassThru `
             @commonParams
 
-        if (($null -ne $Enabled) -or ($OtherAttributes)) {
+        if (($null -ne $Enabled) -or $OtherAttributes) {
             $entry = Set-ADUser -Identity $entry.DistinguishedName -Enabled $Enabled -Replace $OtherAttributes -Server $Server -Credential $Credential -PassThru @commonParams
         }
         
@@ -234,10 +236,17 @@ function Test-ADUser {
     [OutputType([bool])]
     [CmdletBinding()]
     param (
+        # The identity of the group to test. Can be sAMAcountName, SID, LDAP
+        # path, or distinguished name.
         [Parameter(Mandatory, ValueFromPipeline)]
         [string] $Identity,
 
+        # The domain controller to query.
+        [Parameter()]
         [string] $Server,
+
+        # Credentials for the domain controller.
+        [Parameter()]
         [PSCredential] $Credential
     )
     process {
@@ -255,7 +264,6 @@ function Update-ADUserEntry {
     [Diagnostics.CodeAnalysis.SuppressMessage(
         'PSShouldProcess','',Scope='Function',Justification='-WhatIf passed through to LDAPEntry func'
     )]
-    [OutputType([string])]
     [CmdletBinding(SupportsShouldProcess)]
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
@@ -315,6 +323,8 @@ function Convert-ADUserPropertyTable {
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [hashtable] $LdapAttributeTable,
+
+        [Parameter()]
         [hashtable] $ObjectPropertyTable
     )
     process {

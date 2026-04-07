@@ -26,9 +26,9 @@ Import-Module $PSScriptRoot\..\..\Shared\LDAPEntry.psm1 -Force -Verbose:$false |
 
 # act
 Invoke-Pester -Container (New-PesterContainer -ScriptBlock {
+    & "$PSScriptRoot\ADOrganizationalUnit.tests.ps1" -Server $Server -PSCredential $PSCredential
     & "$PSScriptRoot\ADUser.tests.ps1" -Server $Server -PSCredential $PSCredential
     & "$PSScriptRoot\ADAccount.tests.ps1" -Server $Server -PSCredential $PSCredential
     & "$PSScriptRoot\ADGroup.tests.ps1" -Server $Server -PSCredential $PSCredential
-    & "$PSScriptRoot\ADOrganizationalUnit.tests.ps1" -Server $Server -PSCredential $PSCredential
     & "$PSScriptRoot\ADGroupMember.tests.ps1" -Server $Server -PSCredential $PSCredential
 })
