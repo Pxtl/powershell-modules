@@ -34,13 +34,7 @@ function Get-ADGroup {
         [PSCredential] $Credential = $null
     )
     process {
-        $entries = Get-ADObject 'Group' -ObjectPropertyConverter ${function:Convert-ADGroupPropertyTable} @PSBoundParameters
-        foreach ($entry in $entries) {
-            Update-ADGroupEntry $entry
-            
-            # output
-            $entry
-        }
+        Get-ADObject 'Group' -ObjectPropertyConverter ${function:Convert-ADGroupPropertyTable} @PSBoundParameters
     }
 }
 
@@ -103,17 +97,12 @@ function New-ADGroup {
             -OtherAttributes $OtherAttributes `
             -Server $Server `
             -Credential $Credential `
-            @commonParams `
             -PassThru `
-            -DoSAMAccountName
+            -DoSAMAccountName `
+            @commonParams
 
-        if ($GroupCategory -or $GroupScope) {
-            Set-ADGroup $entry.DistinguishedName -GroupCategory $GroupCategory -GroupScope $GroupScope -Server $Server -Credential $Credential @commonParams
-        }
-
-        if ($GroupCategory -or $GroupScope) {
-            Set-ADGroupEntry $entry -GroupCategory $GroupCategory -GroupScope $GroupScope @commonParams
-            Update-ADGroupEntry $entry
+        if ($GroupCategory -or $GroupScope -or $OtherAttributes) {
+            $entry = Set-ADGroup $entry.DistinguishedName -GroupCategory $GroupCategory -GroupScope $GroupScope -Server $Server -Credential $Credential @commonParams
         }
 
         if ($PassThru) {
@@ -192,7 +181,7 @@ function Set-ADGroup {
             }
 
             # using Add to force error if "replace" already has GroupType.
-            $replacementsTable.Add('GroupType', $entry.Properties['GroupType'])
+            $replacementsTable.Add('groupType', $entry.Properties['groupType'])
 
             Set-ADObject 'Group' -Identity $Identity -Add $Add -Remove $Remove -Replace $replacementsTable -Server $Server -Credential $Credential @commonParams
             Set-ADObjectEntry $Entry -Add $Add -Remove $Remove -Replace $replacementsTable @commonParams
@@ -275,19 +264,28 @@ function Test-ADGroup {
 
 #private
 function Update-ADGroupEntry {
+    <#
+    .SYNOPSIS
+        Recalculate the local properties of a directory entry PSCustomObject representing an AD group.
+    #>
     param (
         [Parameter(Mandatory, ValueFromPipeline)]
         [PSCustomObject] $Entry
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
-        Update-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -NotePropertyName GroupScope -TrueValue Global
-        Update-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -NotePropertyName GroupScope -TrueValue DomainLocal
-        Update-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -NotePropertyName GroupScope -TrueValue Universal
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -NotePropertyName GroupScope -TrueValue Global @commonParams
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -NotePropertyName GroupScope -TrueValue DomainLocal @commonParams
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -NotePropertyName GroupScope -TrueValue Universal @commonParams
 
-        Update-LDAPEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -NotePropertyName GroupCategory -TrueValue Security -FalseValue Distribution
+        Update-LDAPEntryFlag $Entry GroupType $GroupType_SECURITY_ENABLED -NotePropertyName GroupCategory -TrueValue Security -FalseValue Distribution @commonParams
 
-        Update-ADObjectEntry $Entry -ObjectPropertyConverter ${function:Convert-ADGroupPropertyTable}
-
+        Update-ADObjectEntry $Entry -ObjectPropertyConverter ${function:Convert-ADGroupPropertyTable} @commonParams
     }
 }
 
@@ -308,11 +306,7 @@ function Set-ADGroupEntry {
 
         [ValidateSet('', 'Global', 'DomainLocal', 'Universal')]
         [Parameter()]
-        [string] $GroupScope,
-
-        # A hashtable of LDAP attributes to set on the user.
-        [Parameter()]
-        [hashtable] $OtherAttributes
+        [string] $GroupScope
     )
     begin {
         $commonParams = @{
@@ -344,10 +338,6 @@ function Set-ADGroupEntry {
             Set-LDAPEntryFlag $Entry GroupType $GroupType_ACCOUNT_GROUP -Value $false @commonParams
             Set-LDAPEntryFlag $Entry GroupType $GroupType_RESOURCE_GROUP -Value $false @commonParams
             Set-LDAPEntryFlag $Entry GroupType $GroupType_UNIVERSAL_GROUP -Value $true @commonParams
-        }
-
-        if ($OtherAttributes) {
-            Update-ADGroupEntry $Entry -Replace $OtherAttributes @commonParams
         }
     }
 }
