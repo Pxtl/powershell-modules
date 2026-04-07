@@ -106,6 +106,12 @@ function Remove-ADGroupMember {
         [Switch]
         $PassThru
     )
+    begin {
+        $commonParams = @{
+            WhatIf = $WhatIfPreference
+            Verbose = $VerbosePreference
+        }
+    }
     process {
         $group = Get-ADGroup -Server $Server -Credential $Credential -Identity $Identity
         if (-not $group) {
