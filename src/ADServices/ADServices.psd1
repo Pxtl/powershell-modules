@@ -1,14 +1,13 @@
 @{  
-    ModuleVersion = '0.1.2'
+    ModuleVersion = '0.2.0'
     GUID = 'c29c8e32-38a3-4ed4-acc3-11ad44bcab3c'
     Author = 'Martin C Zarate (AKA Pxtl)'
     Copyright = '2025, Martin C Zarate'
     Description = @'
-Rough re-implementation of the MS ActiveDirectory powershell module but
-leveraging the C# "System.DirectoryServices.dll" assembly which is available by
-default on Windows instead of requiring that the user install RSAT. Very
-feature-incomplete at this time.  Also, unfortunately
-"System.DirectoryServices.dll" is Windows-only and therefore so is this module.
+Rough re-implementation of the MS ActiveDirectory powershell module by
+leveraging the C# "System.DirectoryServices.Protocols" assembly which is available by
+default on .NET enabled platforms instead of requiring that the user install RSAT. Very
+feature-incomplete at this time.
 '@
     
     # Minimum version of the Windows PowerShell engine required by this module
@@ -46,6 +45,11 @@ feature-incomplete at this time.  Also, unfortunately
             ProjectUri = 'https://github.com/Pxtl/powershell-modules'
             # IconUri = ''
             ReleaseNotes = @'
+v0.2.0
+- rewrote module using System.DirectoryServices.Protocols instead of SystemDirectoryServices
+- supports ADOrganizationalUnit, ADRootDSE
+- now attempts to match the object properties of the ActiveDirectory module.
+
 v0.1.2
 - add Get-ADGroupMember
 
