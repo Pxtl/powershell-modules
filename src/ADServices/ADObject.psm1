@@ -171,7 +171,7 @@ function New-ADObject {
                 if (($existing | Measure-Object).Count) {
                     # objectClass contains the full class inheritance hierarchy so we only want the final, most-specific entry.
                     $existingClass = $existing.objectClass | Select-Object -Last 1
-                    Write-Error "There is already an existing entry '$($existing.distinguishedName)' of type '$($existingClass)'."
+                    Write-Error "There is already an existing entry '$(Get-DistinguishedName $existing)' of type '$($existingClass)'."
                 }
                 $OtherAttributes['sAMAccountName'] = $Name
             }
@@ -246,7 +246,7 @@ function Set-ADObject {
     process {
         $entry = Get-ADObject $Type -Identity $Identity -ObjectPropertyConverter $ObjectPropertyConverter  -Server $Server -Credential $Credential
         if (($entry | Measure-Object).Count -eq 1) {
-            if ($PSCmdlet.ShouldProcess($Identity, "Modifying $Type '$($entry.DistinguishedName)'")) {
+            if ($PSCmdlet.ShouldProcess($Identity, "Modifying $Type '$(Get-DistinguishedName $entry)'")) {
                 $attributeModifications = [Collections.ArrayList]::new()
 
                 if ($Add) {
@@ -268,7 +268,7 @@ function Set-ADObject {
                 }
 
                 $modifyRequest = [DirectoryServices.Protocols.ModifyRequest]::new(
-                    $entry.DistinguishedName,
+                    (Get-DistinguishedName $entry),
                     $attributeModifications
                 )
 
@@ -317,13 +317,13 @@ function Remove-ADObject {
         [PSCredential] $Credential
     )
     process {
-        if ($PSCmdlet.ShouldProcess($Identity, "Removing $Type '$($entry.distinguishedName)'")) {
-            $entry = Get-ADObject $Type -Identity $Identity -Server $Server -Credential $Credential
+        $entry = Get-ADObject $Type -Identity $Identity -Server $Server -Credential $Credential
+        if ($PSCmdlet.ShouldProcess($Identity, "Removing $Type '$(Get-DistinguishedName $entry)'")) {
             if (($entry | Measure-Object).Count -eq 1) {
                 $ldapConnection = New-LDAPConnection $Server $Credential
 
                 $deleteRequest = [DirectoryServices.Protocols.DeleteRequest]::new(
-                    $entry.distinguishedName
+                    (Get-DistinguishedName $entry)
                 )
 
                 $ldapConnection.SendRequest($deleteRequest) | Out-Null
@@ -399,7 +399,7 @@ function Set-ADObjectEntry {
         [hashtable] $Replace
     )
     process {
-        if ($PSCmdlet.ShouldProcess($Entry.DistinguishedName)) {
+        if ($PSCmdlet.ShouldProcess((Get-DistinguishedName $Entry))) {
             if ($Add) {
                 foreach ($attrPair in $Add.GetEnumerator()) {
                     # See https://ldap.com/the-ldap-modify-operation/ to
@@ -472,7 +472,7 @@ function Update-ADObjectEntry {
         # Convert the current LDAP Attributes hashtable into Object Properties hashtable
         $objectPropertyTable = Invoke-Command $ObjectPropertyConverter -ArgumentList @($Entry.Attributes)
 
-        if ($PSCmdlet.ShouldProcess($Entry.DistinguishedName)) {
+        if ($PSCmdlet.ShouldProcess((Get-DistinguishedName $Entry))) {
             # apply the resulting Object Properties Table to the given object's properties
             $objectPropertyTable.Keys |
                 ForEach-Object { 
@@ -481,5 +481,45 @@ function Update-ADObjectEntry {
                     } 
                 }
         }
+    }
+}
+
+
+function Convert-ADObjectPropertyTable {
+    <#
+    .SYNOPSIS
+        Takes a table of raw LDAP attributes and converts them into a table of
+        object properties for an ADObject.
+    .NOTES
+        Adapted from https://learn.microsoft.com/en-us/archive/technet-wiki/12037.active-directory-get-aduser-default-and-extended-properties
+    #>
+    [CmdletBinding()]
+    param (
+        [Parameter(Mandatory, ValueFromPipeline)]
+        [hashtable] $LdapAttributeTable,
+        [hashtable] $ObjectPropertyTable
+    )
+    process {
+        if(-not $ObjectPropertyTable) {
+            $ObjectPropertyTable = @{}
+        }
+        
+        $ObjectPropertyTable['CanonicalName'] = $LdapAttributeTable['canonicalName']
+        $ObjectPropertyTable['CN'] = $LdapAttributeTable['cn']
+        $ObjectPropertyTable['Created'] = $LdapAttributeTable['createTimeStamp']
+        $ObjectPropertyTable['Deleted'] = $LdapAttributeTable['isDeleted']
+        $ObjectPropertyTable['Description'] = $LdapAttributeTable['description']
+        $ObjectPropertyTable['DisplayName'] = $LdapAttributeTable['displayName']
+        $ObjectPropertyTable['DistinguishedName'] = $LdapAttributeTable['distinguishedName']
+        $ObjectPropertyTable['LastKnownParent']	= $LdapAttributeTable['lastKnownParent']
+        $ObjectPropertyTable['Modified'] = $LdapAttributeTable['modifyTimeStamp']
+        $ObjectPropertyTable['Name'] = $LdapAttributeTable['name'] # (Relative Distinguished Name)
+        $ObjectPropertyTable['ObjectCategory'] = $LdapAttributeTable['objectCategory']
+        $ObjectPropertyTable['ObjectClass'] = $LdapAttributeTable['objectClass'] | Select-Object -Last 1
+        $ObjectPropertyTable['ObjectGUID'] = [string] $LdapAttributeTable['objectGUID']
+        $ObjectPropertyTable['ProtectedFromAccidentalDeletion'] = $LdapAttributeTable['nTSecurityDescriptor']
+
+        #output
+        $ObjectPropertyTable
     }
 }

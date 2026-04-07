@@ -124,7 +124,7 @@ function Set-LDAPEntryFlag {
         [bool] $Value
     )
     process {
-        if ($PSCmdlet.ShouldProcess("'$($Entry.DistinguishedName)' property '$BitFieldLDAPProperty' flag '$("0x" + $BitMask.ToString('X'))' to '$value'")) {
+        if ($PSCmdlet.ShouldProcess("'$(Get-DistinguishedName $Entry)' property '$BitFieldLDAPProperty' flag '$("0x" + $BitMask.ToString('X'))' to '$value'")) {
             $Entry.Properties[$BitFieldLDAPProperty] = if ($Value) {
                 # true
                 $Entry.Properties[$BitFieldLDAPProperty] -bor $BitMask
@@ -152,7 +152,7 @@ function Set-LDAPEntryAttributeTable {
         [Hashtable] $AttributeTable
     )
     begin {
-        if ($PSCmdlet.ShouldProcess($Entry.distinguishedName)) {
+        if ($PSCmdlet.ShouldProcess($AttributeTable['distinguishedName'])) {
             # Add raw LDAP attributes as hashtable member of object.
             if ($Entry | Get-Member Attributes) {
                 $Entry.PSObject.Properties.Remove('Attributes')

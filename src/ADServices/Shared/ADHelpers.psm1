@@ -235,46 +235,6 @@ function Add-DirectoryAttributeModification {
 }
 
 
-function Convert-ADObjectPropertyTable {
-    <#
-    .SYNOPSIS
-        Takes a table of raw LDAP attributes and converts them into a table of
-        object properties for an ADObject.
-    .NOTES
-        Adapted from https://learn.microsoft.com/en-us/archive/technet-wiki/12037.active-directory-get-aduser-default-and-extended-properties
-    #>
-    [CmdletBinding()]
-    param (
-        [Parameter(Mandatory, ValueFromPipeline)]
-        [hashtable] $LdapAttributeTable,
-        [hashtable] $ObjectPropertyTable
-    )
-    process {
-        if(-not $ObjectPropertyTable) {
-            $ObjectPropertyTable = @{}
-        }
-        
-        $ObjectPropertyTable['CanonicalName'] = $LdapAttributeTable['canonicalName']
-        $ObjectPropertyTable['CN'] = $LdapAttributeTable['cn']
-        $ObjectPropertyTable['Created'] = $LdapAttributeTable['createTimeStamp']
-        $ObjectPropertyTable['Deleted'] = $LdapAttributeTable['isDeleted']
-        $ObjectPropertyTable['Description'] = $LdapAttributeTable['description']
-        $ObjectPropertyTable['DisplayName'] = $LdapAttributeTable['displayName']
-        $ObjectPropertyTable['DistinguishedName'] = $LdapAttributeTable['distinguishedName']
-        $ObjectPropertyTable['LastKnownParent']	= $LdapAttributeTable['lastKnownParent']
-        $ObjectPropertyTable['Modified'] = $LdapAttributeTable['modifyTimeStamp']
-        $ObjectPropertyTable['Name'] = $LdapAttributeTable['name'] # (Relative Distinguished Name)
-        $ObjectPropertyTable['ObjectCategory'] = $LdapAttributeTable['objectCategory']
-        $ObjectPropertyTable['ObjectClass'] = $LdapAttributeTable['objectClass'] | Select-Object -Last 1
-        $ObjectPropertyTable['ObjectGUID'] = [string] $LdapAttributeTable['objectGUID']
-        $ObjectPropertyTable['ProtectedFromAccidentalDeletion'] = $LdapAttributeTable['nTSecurityDescriptor']
-
-        #output
-        $ObjectPropertyTable
-    }
-}
-
-
 function Convert-ADDateTime {
     <#
     .SYNOPSIS
