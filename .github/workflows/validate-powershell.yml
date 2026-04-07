@@ -20,6 +20,8 @@ on:
     branches: [ "main" ]
   schedule:
     - cron: '28 7 * * 4'
+  # allow manual run
+  workflow_dispatch:
 
 permissions:
   contents: read
