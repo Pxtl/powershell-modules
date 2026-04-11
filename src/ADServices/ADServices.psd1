@@ -13,28 +13,8 @@ feature-incomplete at this time.
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '5.1'
 
-    NestedModules = @(
-        '.\Shared\LDAPEntry.psm1'
-        '.\Shared\ADHelpers.psm1'
-        'ADRootDSE.psm1'
-        'ADObject.psm1'
-        'ADUser.psm1'
-        'ADAccount.psm1'
-        'ADGroup.psm1'
-        'ADGroupMember.psm1'
-        'ADOrganizationalUnit.psm1'
-    )
-
-    FunctionsToExport = @(
-        '*-ADRootDSE'
-        '*-ADObject'
-        '*-ADUser'
-        '*-ADAccount'
-        '*-ADGroup'
-        '*-ADGroupMember'
-        '*-ADOrganizationalUnit'
-    )
-
+    RootModule = 'ADServices.dll'
+    CmdletsToExport = '*'
     CompatiblePSEditions = @('Desktop')
 
     PrivateData = @{
