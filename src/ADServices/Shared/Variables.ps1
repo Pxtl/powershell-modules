@@ -1,3 +1,4 @@
+#TODO: REMOVE THIS AFTER CONFIRMING UNUSED.
 # https://learn.microsoft.com/en-us/troubleshoot/windows-server/active-directory/useraccountcontrol-manipulate-account-properties
 Set-Variable UserAccountControl_SCRIPT -Option ReadOnly -Value 0x01
 Set-Variable UserAccountControl_ACCOUNT_DISABLED -Option ReadOnly -Value 0x02

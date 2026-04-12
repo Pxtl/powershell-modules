@@ -1,3 +1,4 @@
+#TODO: REMOVE THIS AFTER CONFIRMING UNUSED.
 Set-StrictMode -Version Latest
 $ErrorActionPreference = [Management.Automation.ActionPreference]::Stop
 

@@ -8,10 +8,10 @@ namespace Pxtl.ADServices.Cmdlets
     [Cmdlet(VerbsCommon.Add, "ADGroupMember")]
     public class AddADGroupMemberCommand : PSCmdlet
     {
-        [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true)]
+        [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, Position = 0)]
         public string Identity { get; set; }
 
-        [Parameter(ValueFromPipelineByPropertyName = true)]
+        [Parameter(ValueFromPipelineByPropertyName = true, Position = 1)]
         public string[] Members { get; set; }
 
         [Parameter]
@@ -25,7 +25,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADCommandUtils.GetADObject("group", null, Identity, null, Server, Credential, ADPropertyConverters.ConvertAdGroup);
+            var group = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
             if (group == null)
             {
                 ThrowTerminatingError(new ErrorRecord(new InvalidOperationException($"Group '{Identity}' not found."), "GroupNotFound", ErrorCategory.ObjectNotFound, Identity));
@@ -38,23 +38,23 @@ namespace Pxtl.ADServices.Cmdlets
             }
             foreach (var memberIdentity in Members)
             {
-                var memberObject = ADCommandUtils.GetADObject(null, null, memberIdentity, null, Server, Credential, ADPropertyConverters.ConvertAdObject);
+                var memberObject = ADCommandUtils.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
                 if (memberObject == null)
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Object '{memberIdentity}' not found."), "MemberNotFound", ErrorCategory.ObjectNotFound, memberIdentity));
                     continue;
                 }
-                var memberDn = ADCommandUtils.GetDistinguishedName(memberObject);
+                var memberDn = memberObject?.MaybeGetDistinguishedName();
                 if (string.IsNullOrWhiteSpace(memberDn))
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Unable to resolve DN for object '{memberIdentity}'."), "MemberDNMissing", ErrorCategory.InvalidData, memberIdentity));
                     continue;
                 }
-                ADCommandUtils.SetADObject("group", Identity, new Hashtable { ["member"] = memberDn }, null, null, Server, Credential, false, ADPropertyConverters.ConvertAdGroup);
+                ADCommandUtils.SetADObject(ADEntryType.Group, Identity, new Hashtable { ["member"] = memberDn }, null, null, Server, Credential, false);
             }
             if (PassThru.IsPresent)
             {
-                var result = ADCommandUtils.GetADObject("group", null, Identity, null, Server, Credential, ADPropertyConverters.ConvertAdGroup);
+                var result = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
                 if (result != null)
                 {
                     WriteObject(result);
@@ -66,10 +66,10 @@ namespace Pxtl.ADServices.Cmdlets
     [Cmdlet(VerbsCommon.Remove, "ADGroupMember")]
     public class RemoveADGroupMemberCommand : PSCmdlet
     {
-        [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true)]
+        [Parameter(Mandatory = true, ValueFromPipelineByPropertyName = true, Position = 0)]
         public string Identity { get; set; }
 
-        [Parameter(ValueFromPipelineByPropertyName = true)]
+        [Parameter(ValueFromPipelineByPropertyName = true, Position = 1)]
         public string[] Members { get; set; }
 
         [Parameter]
@@ -83,7 +83,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADCommandUtils.GetADObject("group", null, Identity, null, Server, Credential, ADPropertyConverters.ConvertAdGroup);
+            var group = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
             if (group == null)
             {
                 ThrowTerminatingError(new ErrorRecord(new InvalidOperationException($"Group '{Identity}' not found."), "GroupNotFound", ErrorCategory.ObjectNotFound, Identity));
@@ -96,23 +96,23 @@ namespace Pxtl.ADServices.Cmdlets
             }
             foreach (var memberIdentity in Members)
             {
-                var memberObject = ADCommandUtils.GetADObject(null, null, memberIdentity, null, Server, Credential, ADPropertyConverters.ConvertAdObject);
+                var memberObject = ADCommandUtils.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
                 if (memberObject == null)
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Object '{memberIdentity}' not found."), "MemberNotFound", ErrorCategory.ObjectNotFound, memberIdentity));
                     continue;
                 }
-                var memberDn = ADCommandUtils.GetDistinguishedName(memberObject);
+                var memberDn = memberObject?.MaybeGetDistinguishedName();
                 if (string.IsNullOrWhiteSpace(memberDn))
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Unable to resolve DN for object '{memberIdentity}'."), "MemberDNMissing", ErrorCategory.InvalidData, memberIdentity));
                     continue;
                 }
-                ADCommandUtils.SetADObject("group", Identity, null, new Hashtable { ["member"] = memberDn }, null, Server, Credential, false, ADPropertyConverters.ConvertAdGroup);
+                ADCommandUtils.SetADObject(ADEntryType.Group, Identity, null, new Hashtable { ["member"] = memberDn }, null, Server, Credential, false);
             }
             if (PassThru.IsPresent)
             {
-                var result = ADCommandUtils.GetADObject("group", null, Identity, null, Server, Credential, ADPropertyConverters.ConvertAdGroup);
+                var result = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
                 if (result != null)
                 {
                     WriteObject(result);
@@ -125,7 +125,7 @@ namespace Pxtl.ADServices.Cmdlets
     [OutputType(typeof(PSObject))]
     public class GetADGroupMemberCommand : PSCmdlet
     {
-        [Parameter(Mandatory = true, ValueFromPipeline = true)]
+        [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
         public string Identity { get; set; }
 
         [Parameter]
@@ -139,12 +139,12 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADCommandUtils.GetADObject("group", null, Identity, null, Server, Credential, ADPropertyConverters.ConvertAdGroup);
+            var group = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
             if (group == null)
             {
                 return;
             }
-            var groupDn = ADCommandUtils.GetDistinguishedName(group);
+            var groupDn = group.MaybeGetDistinguishedName();
             if (string.IsNullOrWhiteSpace(groupDn))
             {
                 return;
@@ -156,20 +156,20 @@ namespace Pxtl.ADServices.Cmdlets
             }
         }
 
-        private IEnumerable<PSObject> GetGroupMemberObjects(string groupDn, HashSet<string> visited)
+        private IEnumerable<ADObjectEntry> GetGroupMemberObjects(string groupDn, HashSet<string> visited)
         {
             if (!visited.Add(groupDn))
             {
                 yield break;
             }
 
-            var members = ADCommandUtils.GetADObjects(null, $"(memberOf={groupDn})", null, null, Server, Credential, ADPropertyConverters.ConvertAdObject);
+            var members = ADCommandUtils.TryGetADObjects<ADObjectEntry>(null, $"(memberOf={groupDn})", null, null, Server, Credential);
             foreach (var member in members)
             {
                 yield return member;
                 if (Recursive.IsPresent)
                 {
-                    var memberDn = ADCommandUtils.GetDistinguishedName(member);
+                    var memberDn = member?.MaybeGetDistinguishedName();
                     if (!string.IsNullOrWhiteSpace(memberDn))
                     {
                         foreach (var nestedMember in GetGroupMemberObjects(memberDn, visited))
@@ -182,3 +182,5 @@ namespace Pxtl.ADServices.Cmdlets
         }
     }
 }
+
+

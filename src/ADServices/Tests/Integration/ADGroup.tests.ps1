@@ -1,24 +1,9 @@
-[CmdletBinding()]
-param (
-    [Parameter()]
-    [string] $Server,
-    
-    [Parameter(Mandatory)]
-    [PSCredential] $PSCredential
-)
-
-# HACK this is the only way I can figure out how to get the cred parameters into Pester BeforeAll context.
-$global:Credential = $PSCredential
-
-Import-Module $PSScriptRoot\..\.. -Force -Verbose:$false
-
 Describe 'ADGroup' -Tags Integration {
     BeforeAll {
+        Import-Module $PSScriptRoot\ADServicesIntegrationTestModule.psm1
+        Import-Module $PSScriptRoot\..\..\bin\Debug\net48\ADServices.dll
         [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
-        $ConnectionParam = @{
-            Server = $Server
-            Credential = $global:Credential
-        }
+        $ConnectionParam = Initialize-TestHarness
     }
 
     It 'Can New-ADGroup and Get-ADGroup with the correct sAMAccountName' {
@@ -54,7 +39,7 @@ Describe 'ADGroup' -Tags Integration {
 
     AfterEach {
         Write-Verbose "Cleanup in $($MyInvocation.MyCommand.ScriptBlock.File | Split-Path -Leaf)."
-        & "$PSScriptRoot\Shared\Clear-TestObjects.ps1"
+        Clear-TestObjects
     }
 
     #TODO Test by other Identity types, Set dict, test -LDAPFilter, automate clean-up.

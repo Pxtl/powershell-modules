@@ -1,0 +1,12 @@
+// does not appear to work.  TODO: Why not?
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Attach with SharpDbg",
+      "type": "sharpdbg",
+      "request": "attach",
+      "processId": "${command:pickProcess}"
+    }
+  ]
+}

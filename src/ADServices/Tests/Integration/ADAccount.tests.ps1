@@ -1,30 +1,14 @@
-[CmdletBinding()]
-param (
-    [Parameter()]
-    [string] $Server,
-    
-    [Parameter(Mandatory)]
-    [PSCredential] $PSCredential
-)
-
-# HACK this is the only way I can figure out how to get the cred parameters into Pester BeforeAll context.
-$global:Credential = $PSCredential
-
-Import-Module $PSScriptRoot\..\.. -Force -Verbose:$false
-
 Describe 'ADUser' -Tags Integration {
     BeforeAll {
-        if (-not $global:Credential) {
-            throw [InvalidOperationException]::new("Global Credential is null.  Something impossible has happened.")
-        }
+        Import-Module $PSScriptRoot\ADServicesIntegrationTestModule.psm1
+        Import-Module $PSScriptRoot\..\..\bin\Debug\net48\ADServices.dll
+        [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
+        $ConnectionParam = Initialize-TestHarness
+    }
 
-        [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
-        $ConnectionParam = @{
-            Server = $Server
-            Credential = $global:Credential
-        }
-        [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
-        $BuiltInUserDistinguishedNames = & "$PSScriptRoot\Shared\Get-BuiltInUserDistinguishedNames.ps1"
+    AfterAll {
+        Remove-Module ADServicesIntegrationTestModule
+        Remove-Module ADServices
     }
 
     It 'Can Enable-ADUser and Disable-ADUser by sAMAccountName' {
@@ -41,6 +25,6 @@ Describe 'ADUser' -Tags Integration {
 
     AfterEach {
         Write-Verbose "Cleanup in $($MyInvocation.MyCommand.ScriptBlock.File | Split-Path -Leaf)."
-        & "$PSScriptRoot\Shared\Clear-TestObjects.ps1"
+        Clear-TestObjects
     }
 }

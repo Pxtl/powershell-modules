@@ -1,34 +1,12 @@
-using module @{ModuleName='Pester'; ModuleVersion='5.7.1'} # need Pester v5.7.1 for New-PesterContainer
-
-[CmdletBinding()]
-param (
-    [Parameter()]
-    [string] $Server = 'localhost:389',
-
-    [Parameter()]
-    [Management.Automation.PSCredential] $PSCredential
-)
-
-if (-not $PSCredential) {
-    # default credentials for smblds
-    $PSCredential = [Management.Automation.PSCredential]::new('Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
-}
-
-# prepare
-docker compose -f "$PSScriptRoot\adservices-testdocker\docker-compose.yml" up -d --wait
-
-get-module AD* | Remove-Module
-
-# refresh module version in memory then unload it to prevent accidental memory of old versions of module.
-Import-Module $PSScriptRoot\..\..\ADObject.psm1 -Force -Verbose:$false | Remove-Module
-Import-Module $PSScriptRoot\..\..\Shared\ADHelpers.psm1 -Force -Verbose:$false | Remove-Module
-Import-Module $PSScriptRoot\..\..\Shared\LDAPEntry.psm1 -Force -Verbose:$false | Remove-Module
+#need Pester v5.7.1 for New-PesterContainer
+#Requires -Modules @{ModuleName='Pester'; ModuleVersion='5.7.1'} 
+Import-Module 'Pester' -MinimumVersion '5.7.1'
 
 # act
 Invoke-Pester -Container (New-PesterContainer -ScriptBlock {
-    & "$PSScriptRoot\ADOrganizationalUnit.tests.ps1" -Server $Server -PSCredential $PSCredential
-    & "$PSScriptRoot\ADUser.tests.ps1" -Server $Server -PSCredential $PSCredential
-    & "$PSScriptRoot\ADAccount.tests.ps1" -Server $Server -PSCredential $PSCredential
-    & "$PSScriptRoot\ADGroup.tests.ps1" -Server $Server -PSCredential $PSCredential
-    & "$PSScriptRoot\ADGroupMember.tests.ps1" -Server $Server -PSCredential $PSCredential
+    & "$PSScriptRoot\ADOrganizationalUnit.tests.ps1"
+    & "$PSScriptRoot\ADUser.tests.ps1"
+    & "$PSScriptRoot\ADAccount.tests.ps1"
+    & "$PSScriptRoot\ADGroup.tests.ps1"
+    & "$PSScriptRoot\ADGroupMember.tests.ps1"
 })

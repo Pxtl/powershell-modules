@@ -1,28 +1,9 @@
-[CmdletBinding()]
-param (
-    [Parameter()]
-    [string] $Server,
-    
-    [Parameter(Mandatory)]
-    [PSCredential] $PSCredential
-)
-
-# HACK this is the only way I can figure out how to get the cred parameters into Pester BeforeAll context.
-$global:Credential = $PSCredential
-
-Import-Module $PSScriptRoot\..\.. -Force -Verbose:$false
-
 Describe 'ADOrganizationalUnit' -Tags Integration {
     BeforeAll {
+        Import-Module $PSScriptRoot\ADServicesIntegrationTestModule.psm1
+        Import-Module $PSScriptRoot\..\..\bin\Debug\net48\ADServices.dll
         [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
-        $ConnectionParam = @{
-            Server = $Server
-            Credential = $global:Credential
-        }
-        [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
-        $BuiltInOrganizationalUnitDistinguishedNames = @(
-            'OU=Domain Controllers,DC=samdom,DC=example,DC=com'
-        )
+        $global:ConnectionParam = Initialize-TestHarness
     }
 
     It 'Can New-ADOrganizationalUnit in an alternate path' {
@@ -30,9 +11,9 @@ Describe 'ADOrganizationalUnit' -Tags Integration {
         $parentPath = 'OU=Subdir,OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
         $distinguishedName = "OU=$testOrganizationalUnitName,$parentPath"
         $expectedDistinguishedName = $distinguishedName -replace '\\', ''
-        New-ADOrganizationalUnit @ConnectionParam -Name 'Alternate OrganizationalUnits'
-        New-ADOrganizationalUnit @ConnectionParam -Name 'Subdir' -Path 'OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
-        New-ADOrganizationalUnit @ConnectionParam -Name $testOrganizationalUnitName -Path $parentPath
+        New-ADOrganizationalUnit @global:ConnectionParam -Name 'Alternate OrganizationalUnits'
+        New-ADOrganizationalUnit @global:ConnectionParam -Name 'Subdir' -Path 'OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
+        New-ADOrganizationalUnit @global:ConnectionParam -Name $testOrganizationalUnitName -Path $parentPath
         
         $result = Get-ADOrganizationalUnit @ConnectionParam -Identity $distinguishedName
         $result.distinguishedName | Should -Be $expectedDistinguishedName
@@ -63,6 +44,6 @@ Describe 'ADOrganizationalUnit' -Tags Integration {
 
     AfterEach {
         Write-Verbose "Cleanup in $($MyInvocation.MyCommand.ScriptBlock.File | Split-Path -Leaf)."
-        & "$PSScriptRoot\Shared\Clear-TestObjects.ps1"
+        Clear-TestObjects
     }
 }
