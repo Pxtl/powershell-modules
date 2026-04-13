@@ -83,32 +83,31 @@ namespace Pxtl.ADServices.Cmdlets
             return table;
         }
 
-        private static int ComputeGroupType(int currentType, string category, string scope)
+        private static long ComputeGroupType(long groupType, string category, string scope)
         {
-            var typeValue = currentType;
             if (!string.IsNullOrWhiteSpace(category))
             {
                 if (category.Equals("Security", StringComparison.OrdinalIgnoreCase))
                 {
-                    typeValue |= unchecked((int)0x80000000);
+                    groupType |= GroupTypeFlags.SECURITY_ENABLED;
                 }
                 else
                 {
-                    typeValue &= ~unchecked((int)0x80000000);
+                    groupType &= ~GroupTypeFlags.SECURITY_ENABLED;
                 }
             }
             if (!string.IsNullOrWhiteSpace(scope))
             {
-                typeValue &= ~(0x02 | 0x04 | 0x08);
-                typeValue |= scope switch
+                groupType &= ~(GroupTypeFlags.ACCOUNT_GROUP | GroupTypeFlags.RESOURCE_GROUP | GroupTypeFlags.UNIVERSAL_GROUP);
+                groupType |= scope switch
                 {
-                    "Global" => 0x02,
-                    "DomainLocal" => 0x04,
-                    "Universal" => 0x08,
-                    _ => 0
+                    "Global" => GroupTypeFlags.ACCOUNT_GROUP,
+                    "DomainLocal" => GroupTypeFlags.RESOURCE_GROUP,
+                    "Universal" => GroupTypeFlags.UNIVERSAL_GROUP,
+                    _ => 0L
                 };
             }
-            return typeValue;
+            return groupType;
         }
     }
 
@@ -205,6 +204,26 @@ namespace Pxtl.ADServices.Cmdlets
         protected override void ProcessRecord()
         {
             ADEntryRepository.RemoveADObject(ADEntryType.Group, Identity, Server, Credential);
+        }
+    }
+
+    [Cmdlet(VerbsDiagnostic.Test, "ADGroup")]
+    [OutputType(typeof(bool))]
+    public class TestADGroupCommand : PSCmdlet
+    {
+        [Parameter(Mandatory = true, ValueFromPipeline = true, Position = 0)]
+        public string Identity { get; set; }
+
+        [Parameter]
+        public string Server { get; set; }
+
+        [Parameter]
+        public PSCredential Credential { get; set; }
+
+        protected override void ProcessRecord()
+        {
+            var result = ADEntryRepository.TestADObject(ADEntryType.Group, Identity, Server, Credential);
+            WriteObject(result);
         }
     }
 }

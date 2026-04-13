@@ -140,6 +140,14 @@ namespace Pxtl.ADServices
             {
                 return CreateAttributeModification(name, values.Cast<string>(), operation);
             }
+            else if (values.All(v => v is int))
+            {
+                return CreateAttributeModification(name, values.Select(v => v.ToString()), operation);
+            }
+            else if (values.All(v => v is long))
+            {
+                return CreateAttributeModification(name, values.Select(v => v.ToString()), operation);
+            }
             else if (values.All(v => v is byte[]))
             {
                 return CreateAttributeModification(name, values.Cast<byte[]>(), operation);
@@ -150,7 +158,7 @@ namespace Pxtl.ADServices
             }
             else
             {
-                throw new ArgumentException($"{nameof(value)} must be either a byte[], string, or Uri, or an array thereof.", nameof(value));
+                throw new ArgumentException($"{nameof(value)} must be either a byte[], string, int, long, or Uri, or an array thereof.", nameof(value));
             }
         }
 

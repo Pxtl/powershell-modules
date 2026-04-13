@@ -4,6 +4,7 @@ namespace Pxtl.ADServices
 {
     public class ADGroupEntry : ADObjectEntry
     {
+        public string SamAccountName { get; set; }
         public object Members { get; set; }
         public string GroupCategory { get; set; }
         public string GroupScope { get; set; }
@@ -30,6 +31,7 @@ namespace Pxtl.ADServices
             HomePage = ADAttributeHelper.NormalizeString(ADAttributeHelper.GetValue(ldapAttributes, "wWWHomePage"));
             ManagedBy = ADAttributeHelper.NormalizeString(ADAttributeHelper.GetValue(ldapAttributes, "managedBy"));
             Members = ADAttributeHelper.GetValue(ldapAttributes, "member");
+            SamAccountName = ADAttributeHelper.NormalizeString(ADAttributeHelper.GetValue(ldapAttributes, "sAMAccountName"));
         }
     }
 }
