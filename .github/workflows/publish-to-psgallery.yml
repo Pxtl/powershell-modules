@@ -11,9 +11,10 @@ run-name: >-
 
 on:
   workflow_run:
-    workflows: ["PowerShell CI"]
+    workflows: ["Validate Powershell"]
     types:
       - completed
+
   # Allows you to run this workflow manually from the Actions tab
   workflow_dispatch:
 
@@ -32,7 +33,13 @@ jobs:
       # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
       - uses: actions/checkout@v4
 
-      # Runs a single command using the runners shell
+      # Build any dlls in the tree
+      - name: dotnet build
+        shell: pwsh
+        run: |
+          Get-ChildItem *.csproj -Recurse | 
+            Where-Object Name -notlike '*.Tests.csproj' | 
+            ForEach-Object { dotnet build $_ }
       - name: Publish Module to PowerShell Gallery
         #formerly pcgeek86/publish-powershell-module-action@v20
         uses: Pxtl/publish-powershell-module-action@v0.4
