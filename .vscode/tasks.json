@@ -4,12 +4,23 @@
     "version": "2.0.0",
     "tasks": [
         {
-            "type": "dotnet",
-            "task": "build ./src/ADServices/ADServices.PSModule/ADServices.PSModule.csproj",
-            "file": "./src/ADServices/ADServices.PSModule/ADServices.PSModule.csproj",
-            "group": "build",
+            "label": "dotnet build ADServices.PSModule.csproj Debug",
+            "type": "shell",
+            "command": "dotnet build ./src/ADServices/ADServices.PSModule/ADServices.PSModule.csproj -c debug",
+            "group": {
+                "kind": "build",
+                "isDefault": true
+            },
             "problemMatcher": [],
-            "label": "dotnet: build ./src/ADServices/ADServices.PSModule/ADServices.PSModule.csproj"
+        },
+        {
+            "label": "dotnet build ADServices.PSModule.csproj Release",
+            "type": "shell",
+            "command": "dotnet build ./src/ADServices/ADServices.PSModule/ADServices.PSModule.csproj -c release",
+            "group": {
+                "kind": "build"
+            },
+            "problemMatcher": [],
         }
     ]
 }
