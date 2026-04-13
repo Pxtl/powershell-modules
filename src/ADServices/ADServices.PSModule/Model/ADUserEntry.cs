@@ -66,6 +66,14 @@ namespace Pxtl.ADServices
         public bool UseDESKeyOnly { get; set; }
         public string UserPrincipalName { get; set; }
 
+        /// <summary>
+        /// Takes a table of raw LDAP properties and converts them into object
+        /// properties for an ADUserEntry.
+        /// </summary>
+        /// <remarks>
+        /// Adapted from
+        /// https://learn.microsoft.com/en-us/archive/technet-wiki/12037.active-directory-get-aduser-default-and-extended-properties
+        /// </remarks>
         public override void Hydrate(Dictionary<string, object> ldapAttributes)
         {
             base.Hydrate(ldapAttributes);

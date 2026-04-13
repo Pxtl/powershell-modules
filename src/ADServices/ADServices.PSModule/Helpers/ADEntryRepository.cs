@@ -10,7 +10,7 @@ namespace Pxtl.ADServices
     public static class ADEntryRepository
     {
         private readonly static ADEntryType[] UnfilteredADEntryTypes = { ADEntryType.Object, ADEntryType.RootDSE };
-        public static IEnumerable<T> TryGetADObjects<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
+        public static IEnumerable<T> MaybeGetADObjects<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
             where T : ADEntry, new()
         {
             var type = GetEntryTypeFromEntryClass(typeof(T));
@@ -34,42 +34,42 @@ namespace Pxtl.ADServices
             return LdapHelper.SearchObjects<T>(filter, searchBase, server, credential, "*");
         }
 
-        public static IEnumerable<ADEntry> TryGetADObjects(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
+        public static IEnumerable<ADEntry> MaybeGetADObjects(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
         {
             type ??= ADEntryType.Object;
             return type.Value switch
             {
-                ADEntryType.User => TryGetADObjects<ADUserEntry>(ldapFilter, identity, searchBase, server, credential),
-                ADEntryType.Group => TryGetADObjects<ADGroupEntry>(ldapFilter, identity, searchBase, server, credential),
-                ADEntryType.OrganizationalUnit => TryGetADObjects<ADOrganizationalUnitEntry>(ldapFilter, identity, searchBase, server, credential),
-                ADEntryType.RootDSE => TryGetADObjects<ADRootDSEEntry>(ldapFilter, identity, searchBase, server, credential),
-                _ => TryGetADObjects<ADObjectEntry>(ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.User => MaybeGetADObjects<ADUserEntry>(ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.Group => MaybeGetADObjects<ADGroupEntry>(ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.OrganizationalUnit => MaybeGetADObjects<ADOrganizationalUnitEntry>(ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.RootDSE => MaybeGetADObjects<ADRootDSEEntry>(ldapFilter, identity, searchBase, server, credential),
+                _ => MaybeGetADObjects<ADObjectEntry>(ldapFilter, identity, searchBase, server, credential),
             };
         }
 
-        public static T TryGetADObject<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
+        public static T MaybeGetADObject<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            return TryGetADObjects<T>(ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
+            return MaybeGetADObjects<T>(ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
         }
 
         public static T GetADObject<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            var entry = TryGetADObjects<T>(ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
+            var entry = MaybeGetADObjects<T>(ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
             return (entry == null)
                 ? throw new KeyNotFoundException($"LDAP object '{identity} was not found on '{server}'.")
                 : entry;
         }
 
-        public static ADEntry TryGetADObject(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
+        public static ADEntry MaybeGetADObject(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
         {
-            return TryGetADObjects(type, ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
+            return MaybeGetADObjects(type, ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
         }
 
         public static ADEntry GetADObject(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
         {
-            var entry = TryGetADObjects(type, ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
+            var entry = MaybeGetADObjects(type, ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
             return (entry == null)
                 ? throw new KeyNotFoundException($"LDAP object '{identity} was not found on '{server}'.")
                 : entry;
@@ -77,13 +77,13 @@ namespace Pxtl.ADServices
 
         public static bool TestADObject(ADEntryType? type, string identity, string server, PSCredential credential)
         {
-            return TryGetADObjects(type, null, identity, null, server, credential).Any();
+            return MaybeGetADObjects(type, null, identity, null, server, credential).Any();
         }
 
         public static bool TestADObject<T>(string identity, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            return TryGetADObjects<T>(null, identity, null, server, credential).Any();
+            return MaybeGetADObjects<T>(null, identity, null, server, credential).Any();
         }
 
         public static T NewADObject<T>(string distinguishedComponentType, string name, Hashtable otherAttributes, string path, string defaultRelativePath, string server, PSCredential credential, bool doSamAccountName, bool passThru)
@@ -118,7 +118,7 @@ namespace Pxtl.ADServices
                 {
                     throw new InvalidOperationException($"{nameof(ADOrganizationalUnitEntry)} cannot have a sAMAccountName");
                 }
-                var existing = TryGetADObjects<ADObjectEntry>("sAMAccountName=" + name, null, null, server, credential);
+                var existing = MaybeGetADObjects<ADObjectEntry>("sAMAccountName=" + name, null, null, server, credential);
                 if (existing.Any())
                 {
                     throw new InvalidOperationException($"There is already an existing entry with sAMAccountName '{name}'.");
@@ -138,7 +138,7 @@ namespace Pxtl.ADServices
 
             if (passThru)
             {
-                return TryGetADObject<T>(null, distinguishedName, null, server, credential);
+                return MaybeGetADObject<T>(null, distinguishedName, null, server, credential);
             }
             return null;
         }
@@ -157,7 +157,7 @@ namespace Pxtl.ADServices
         public static T SetADObject<T>(string identity, Hashtable add, Hashtable remove, Hashtable replace, string server, PSCredential credential, bool passThru)
             where T : ADEntry, new()
         {
-            var entry = TryGetADObjects<T>(null, identity, null, server, credential).ToList();
+            var entry = MaybeGetADObjects<T>(null, identity, null, server, credential).ToList();
             if (entry.Count == 1)
             {
                 var modifications = new List<DirectoryAttributeModification>();
@@ -195,7 +195,7 @@ namespace Pxtl.ADServices
                 }
                 if (passThru)
                 {
-                    return TryGetADObject<T>(null, identity, null, server, credential);
+                    return MaybeGetADObject<T>(null, identity, null, server, credential);
                 }
                 return null;
             }
@@ -221,7 +221,7 @@ namespace Pxtl.ADServices
         public static void RemoveADObject<T>(string identity, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            var entry = TryGetADObjects<T>(null, identity, null, server, credential).ToList();
+            var entry = MaybeGetADObjects<T>(null, identity, null, server, credential).ToList();
             if (entry.Count == 1)
             {
                 using var connection = LdapHelper.CreateConnection(server, credential);

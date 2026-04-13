@@ -23,7 +23,7 @@ namespace ADServices.Tests
         [TestMethod]
         public void TestGetRootDSE()
         {
-            var rootDSE = ADEntryRepository.TryGetADObject<ADRootDSEEntry>("(objectClass=*)", null, null, _server, _credential);
+            var rootDSE = ADEntryRepository.MaybeGetADObject<ADRootDSEEntry>("(objectClass=*)", null, null, _server, _credential);
             Assert.IsNotNull(rootDSE, "rootDSE is null");
             Assert.IsTrue(rootDSE.Attributes.ContainsKey("defaultNamingContext"), "rootDSE does not have defaultNamingContext");
         }

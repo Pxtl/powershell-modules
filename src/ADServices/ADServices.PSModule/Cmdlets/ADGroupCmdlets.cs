@@ -42,7 +42,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var results = ADEntryRepository.TryGetADObjects(ADEntryType.Group, LDAPFilter, Identity, null, Server, Credential);
+            var results = ADEntryRepository.MaybeGetADObjects<ADGroupEntry>(LDAPFilter, Identity, null, Server, Credential);
             foreach (var result in results)
             {
                 WriteObject(result);
@@ -96,7 +96,7 @@ namespace Pxtl.ADServices.Cmdlets
             var table = new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (!string.IsNullOrWhiteSpace(category) || !string.IsNullOrWhiteSpace(scope))
             {
-                var current = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Name, null, Server, Credential);
+                var current = ADEntryRepository.MaybeGetADObject<ADGroupEntry>(null, Name, null, Server, Credential);
                 var currentType = current.GetAttributeIntValue("groupType");
                 table["groupType"] = ComputeGroupType(currentType, category, scope);
             }

@@ -23,7 +23,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var results = ADEntryRepository.TryGetADObjects(ADEntryType.OrganizationalUnit, LDAPFilter, Identity, null, Server, Credential);
+            var results = ADEntryRepository.MaybeGetADObjects<ADOrganizationalUnitEntry>(LDAPFilter, Identity, null, Server, Credential);
             foreach (var result in results)
             {
                 WriteObject(result);

@@ -11,6 +11,14 @@ namespace Pxtl.ADServices
         public string HomePage { get; set; }
         public string ManagedBy { get; set; }
 
+        /// <summary>
+        /// Takes a table of raw LDAP properties and converts them into object
+        /// properties for an ADGroupEntry.
+        /// </summary>
+        /// <remarks>
+        /// Adapted from
+        /// https://learn.microsoft.com/en-us/archive/technet-wiki/12079.active-directory-get-adgroup-default-and-extended-properties
+        /// </remarks>
         public override void Hydrate(Dictionary<string, object> ldapAttributes)
         {
             base.Hydrate(ldapAttributes);

@@ -21,6 +21,14 @@ namespace Pxtl.ADServices
         public string ObjectGUID { get; set; }
         public object ProtectedFromAccidentalDeletion { get; set; }
 
+        /// <summary>
+        /// Takes a table of raw LDAP properties and converts them into object
+        /// properties for an ADObjectEntry.
+        /// </summary>
+        /// <remarks>
+        /// Adapted from
+        /// https://learn.microsoft.com/en-us/archive/technet-wiki/12103.active-directory-get-adobject-default-and-extended-properties
+        /// </remarks>
         public override void Hydrate(Dictionary<string, object> ldapAttributes)
         {
             base.Hydrate(ldapAttributes);

@@ -30,7 +30,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var entries = ADEntryRepository.TryGetADObjects(Type, LDAPFilter, Identity, SearchBase, Server, Credential);
+            var entries = ADEntryRepository.MaybeGetADObjects(Type, LDAPFilter, Identity, SearchBase, Server, Credential);
             if (!string.IsNullOrEmpty(Identity))
             {
                 var list = entries.ToList();

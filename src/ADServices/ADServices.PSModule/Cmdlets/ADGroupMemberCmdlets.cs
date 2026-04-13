@@ -25,7 +25,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+            var group = ADEntryRepository.MaybeGetADObject<ADGroupEntry>(null, Identity, null, Server, Credential);
             if (group == null)
             {
                 ThrowTerminatingError(new ErrorRecord(new InvalidOperationException($"Group '{Identity}' not found."), "GroupNotFound", ErrorCategory.ObjectNotFound, Identity));
@@ -38,7 +38,7 @@ namespace Pxtl.ADServices.Cmdlets
             }
             foreach (var memberIdentity in Members)
             {
-                var memberObject = ADEntryRepository.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
+                var memberObject = ADEntryRepository.MaybeGetADObject(null, null, memberIdentity, null, Server, Credential);
                 if (memberObject == null)
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Object '{memberIdentity}' not found."), "MemberNotFound", ErrorCategory.ObjectNotFound, memberIdentity));
@@ -54,7 +54,7 @@ namespace Pxtl.ADServices.Cmdlets
             }
             if (PassThru.ToBool())
             {
-                var result = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+                var result = ADEntryRepository.MaybeGetADObject<ADGroupEntry>(null, Identity, null, Server, Credential);
                 if (result != null)
                 {
                     WriteObject(result);
@@ -83,7 +83,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+            var group = ADEntryRepository.MaybeGetADObject<ADGroupEntry>(null, Identity, null, Server, Credential);
             if (group == null)
             {
                 ThrowTerminatingError(new ErrorRecord(new InvalidOperationException($"Group '{Identity}' not found."), "GroupNotFound", ErrorCategory.ObjectNotFound, Identity));
@@ -96,7 +96,7 @@ namespace Pxtl.ADServices.Cmdlets
             }
             foreach (var memberIdentity in Members)
             {
-                var memberObject = ADEntryRepository.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
+                var memberObject = ADEntryRepository.MaybeGetADObject(null, null, memberIdentity, null, Server, Credential);
                 if (memberObject == null)
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Object '{memberIdentity}' not found."), "MemberNotFound", ErrorCategory.ObjectNotFound, memberIdentity));
@@ -112,7 +112,7 @@ namespace Pxtl.ADServices.Cmdlets
             }
             if (PassThru.ToBool())
             {
-                var result = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+                var result = ADEntryRepository.MaybeGetADObject<ADGroupEntry>(null, Identity, null, Server, Credential);
                 if (result != null)
                 {
                     WriteObject(result);
@@ -139,7 +139,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+            var group = ADEntryRepository.MaybeGetADObject<ADGroupEntry>(null, Identity, null, Server, Credential);
             if (group == null)
             {
                 return;
@@ -163,7 +163,7 @@ namespace Pxtl.ADServices.Cmdlets
                 yield break;
             }
 
-            var members = ADEntryRepository.TryGetADObjects<ADObjectEntry>($"(memberOf={groupDn})", null, null, Server, Credential);
+            var members = ADEntryRepository.MaybeGetADObjects<ADObjectEntry>($"(memberOf={groupDn})", null, null, Server, Credential);
             foreach (var member in members)
             {
                 yield return member;
