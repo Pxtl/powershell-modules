@@ -48,44 +48,5 @@ namespace Pxtl.ADServices
         {
             return value?.ToString();
         }
-
-        /// <summary>
-        /// Get long value from dictionary.  Convert to long if it's not already
-        /// a long if possible.
-        /// </summary>
-        internal static long GetLongValue(Dictionary<string, object> attributes, string key)
-        {
-            if (attributes.TryGetValue(key, out var raw) && raw != null)
-            {
-                return raw switch
-                {
-                    int i => i,
-                    long l => l,
-                    string s when long.TryParse(s, out var result) => result,
-                    _ when long.TryParse(raw.ToString(), out var result) => result,
-                    _ => 0L
-                };
-            }
-            return 0L;
-        }
-
-        /// <summary>
-        /// Get int value from dictionary.  Convert to int if it's not already
-        /// an int if possible.
-        /// </summary>
-        internal static int GetIntValue(Dictionary<string, object> attributes, string key)
-        {
-            if (attributes.TryGetValue(key, out var raw) && raw != null)
-            {
-                return raw switch
-                {
-                    int i => i,
-                    string s when int.TryParse(s, out var result) => result,
-                    _ when int.TryParse(raw.ToString(), out var result) => result,
-                    _ => 0
-                };
-            }
-            return 0;
-        }
     }
 }

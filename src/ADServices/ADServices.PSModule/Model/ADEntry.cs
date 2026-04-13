@@ -28,6 +28,10 @@ namespace Pxtl.ADServices
             }
         }
 
+        /// <summary>
+        /// Get int value from Attributes dictionary.  Convert to int if it's
+        /// not already a int if possible.
+        /// </summary>
         public int GetAttributeIntValue(string attributeName)
         {
             if (Attributes.TryGetValue(attributeName, out var raw) == true)
@@ -42,6 +46,26 @@ namespace Pxtl.ADServices
                 };
             }
             return 0;
+        }
+
+        /// <summary>
+        /// Get long value from Attributes dictionary.  Convert to long if it's
+        /// not already a long if possible.
+        /// </summary>
+        public long GetAttributeLongValue(string attributeName)
+        {
+            if (Attributes.TryGetValue(attributeName, out var raw) && raw != null)
+            {
+                return raw switch
+                {
+                    int i => i,
+                    long l => l,
+                    string s when long.TryParse(s, out var result) => result,
+                    _ when long.TryParse(raw.ToString(), out var result) => result,
+                    _ => 0L
+                };
+            }
+            return 0L;
         }
 
         /// <summary>

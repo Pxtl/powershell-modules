@@ -22,7 +22,7 @@ namespace Pxtl.ADServices
         public override void Hydrate(Dictionary<string, object> ldapAttributes)
         {
             base.Hydrate(ldapAttributes);
-            var groupType = ADAttributeHelper.GetLongValue(ldapAttributes, "groupType");
+            var groupType = GetAttributeLongValue("groupType");
             GroupCategory = (groupType & GroupTypeFlags.SECURITY_ENABLED) != 0 ? "Security" : "Distribution";
             if ((groupType & GroupTypeFlags.ACCOUNT_GROUP) != 0)
             {
