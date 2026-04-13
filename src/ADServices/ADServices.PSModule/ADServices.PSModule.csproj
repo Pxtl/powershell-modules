@@ -25,11 +25,13 @@
     <MySourceFiles Include="$(MSBuildProjectDirectory)\bin\$(Configuration)\**\*.*" />
     <MyOutputFiles Include="$(MSBuildProjectDirectory)\..\bin\**\*.*" />
   </ItemGroup>
-  <Target Name="CopyToModuleRoot" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
-    <Copy SourceFiles="@(MySourceFiles)" DestinationFolder="$(MSBuildProjectDirectory)\..\bin\%(RecursiveDir)" SkipUnchangedFiles="true" />
+  <Target Name="CopyDebugToModuleRoot" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+    <Copy SourceFiles="@(MySourceFiles)" DestinationFolder="$(MSBuildProjectDirectory)\..\bin\%(RecursiveDir)" SkipUnchangedFiles="false" />
+    <Message Text="Copying debug output to '$(MSBuildProjectDirectory)\..\bin\'" />
   </Target>
-  <Target Name="CopyToModuleRoot" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
+  <Target Name="CopyReleaseToModuleRoot" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <Delete Files="@(MyOutputFiles)" />
     <Copy SourceFiles="@(MySourceFiles)" DestinationFolder="$(MSBuildProjectDirectory)\..\bin\%(RecursiveDir)" SkipUnchangedFiles="false" />
+    <Message Text="Copying release output to '$(MSBuildProjectDirectory)\..\bin\'" />
   </Target>
 </Project>

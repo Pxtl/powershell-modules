@@ -6,14 +6,22 @@ namespace Pxtl.ADServices
 {
     internal static class ADAttributeHelper
     {
-        internal static object GetValue(Dictionary<string, object> table, string key)
+        /// <summary>
+        /// Get value from attributes dictionary. Returns null if not found.
+        /// </summary>
+        internal static object GetValue(Dictionary<string, object> attributes, string key)
         {
-            return table.TryGetValue(key, out var value) ? value : null;
+            return attributes.TryGetValue(key, out var value) ? value : null;
         }
 
-        internal static bool HasFlag(Dictionary<string, object> table, string key, long mask)
+
+        /// <summary>
+        /// Gets a bitfield flag within the elements of a given Attributes dictionary
+        /// </summary>
+        /// <returns></returns>
+        internal static bool HasFlag(Dictionary<string, object> attributes, string key, long mask)
         {
-            if (!table.TryGetValue(key, out var raw) || raw == null)
+            if (!attributes.TryGetValue(key, out var raw) || raw == null)
             {
                 return false;
             }
@@ -33,14 +41,21 @@ namespace Pxtl.ADServices
             return false;
         }
 
+        /// <summary>
+        /// Convert object reference to string, even if the object is null.
+        /// </summary>
         internal static string NormalizeString(object value)
         {
             return value?.ToString();
         }
 
-        internal static long GetLongValue(Dictionary<string, object> table, string key)
+        /// <summary>
+        /// Get long value from dictionary.  Convert to long if it's not already
+        /// a long if possible.
+        /// </summary>
+        internal static long GetLongValue(Dictionary<string, object> attributes, string key)
         {
-            if (table.TryGetValue(key, out var raw) && raw != null)
+            if (attributes.TryGetValue(key, out var raw) && raw != null)
             {
                 return raw switch
                 {
@@ -54,9 +69,13 @@ namespace Pxtl.ADServices
             return 0L;
         }
 
-        internal static int GetIntValue(Dictionary<string, object> table, string key)
+        /// <summary>
+        /// Get int value from dictionary.  Convert to int if it's not already
+        /// an int if possible.
+        /// </summary>
+        internal static int GetIntValue(Dictionary<string, object> attributes, string key)
         {
-            if (table.TryGetValue(key, out var raw) && raw != null)
+            if (attributes.TryGetValue(key, out var raw) && raw != null)
             {
                 return raw switch
                 {

@@ -1,23 +1,43 @@
 using System;
 using System.Collections;
 using System.Management.Automation;
+using System.ComponentModel;
 
 namespace Pxtl.ADServices.Cmdlets
 {
+    /// <summary>
+    /// Retrieves an Active Directory group by Identity or LDAP Filter. Returns
+    /// nothing if not found.
+    /// </summary>
     [Cmdlet(VerbsCommon.Get, "ADGroup", DefaultParameterSetName = "Filter")]
     [OutputType(typeof(PSObject))]
     public class GetADGroupCommand : PSCmdlet
     {
+        
+        /// <summary>
+        /// The LDAP filter to search for groups. Uses normal LDAP Search
+        /// syntax, *not* PS ActiveDirectory search.
+        /// </summary>
         [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Filter")]
         public string LDAPFilter { get; set; }
 
+        /// <summary>
+        /// The identity of the group to retrieve. Can be sAMAcountName, SID,
+        /// LDAP path, or distinguished name.
+        /// </summary>
         [Parameter(Mandatory = true, ValueFromPipeline = true, ParameterSetName = "Identity")]
         public string Identity { get; set; }
 
+        /// <summary>
+        /// The domain controller to query.
+        /// </summary>
+        [Description("The domain controller to query.")]
         [Parameter]
         public string Server { get; set; }
 
-        [Parameter]
+        /// <summary>
+        /// Credentials for the domain controller.
+        /// </summary>
         public PSCredential Credential { get; set; }
 
         protected override void ProcessRecord()

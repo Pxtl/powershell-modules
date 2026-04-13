@@ -16,6 +16,7 @@ feature-incomplete at this time.
     RootModule = 'bin\net48\ADServices.dll'
     CmdletsToExport = '*'
     CompatiblePSEditions = @('Desktop')
+    FileList=@('bin\net48\ADServices.dll', 'bin\net48\System.Management.Automation.dll', 'bin\net48\ADServices.pdb')
 
     PrivateData = @{
         PSData = @{
@@ -26,7 +27,7 @@ feature-incomplete at this time.
             # IconUri = ''
             ReleaseNotes = @'
 v0.3.0
-- converted module to .NET Framework 0imp.4.8
+- converted module to .NET Framework 4.8
 
 v0.2.0
 - rewrote module using System.DirectoryServices.Protocols instead of SystemDirectoryServices
