@@ -1,7 +1,13 @@
 # Load the function (adjust path if needed)
-Import-Module "$PSScriptRoot\..\Shared\ADHelpers.psm1" -Force
 
 Describe 'Convert-ADIdentityToFilter' {
+    BeforeAll {
+        Import-Module "$PSScriptRoot\..\ADServices.psd1" -Force
+    }
+
+    AfterAll {
+        Get-Module ADServices | Remove-Module
+    }
 
     It 'Returns filter for SAMAccountName' {
         $result = Convert-ADIdentityToFilter -Identity 'jdoe'
