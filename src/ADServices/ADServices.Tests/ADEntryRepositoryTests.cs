@@ -7,12 +7,12 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 
 using Pxtl.ADServices;
 
-namespace ADServices.Tests
+namespace Pxtl.ADServices.Tests
 {
     [TestClass]
     public class ADEntryRepositoryTests
     {
-        private string _server = "localhost:389";
+        private readonly string _server = "localhost:389";
         private PSCredential _credential = null;
 
         [TestInitialize]

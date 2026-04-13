@@ -4,14 +4,12 @@ using System.Collections.Generic;
 using System.DirectoryServices.Protocols;
 using System.Linq;
 using System.Management.Automation;
-using System.Net;
-using System.Security.Principal;
 using System.Text;
 using System.Text.RegularExpressions;
 
 namespace Pxtl.ADServices
 {
-    internal static class LdapHelper
+    public static class LdapHelper
     {
         public static LdapConnection CreateConnection(string server, PSCredential credential)
         {
@@ -107,7 +105,8 @@ namespace Pxtl.ADServices
                     {
                         if (string.Equals(attribute.Name, "objectSid", StringComparison.OrdinalIgnoreCase))
                         {
-                            values.Add(new SecurityIdentifier(bytes, 0));
+                            // can't use the SID object provided by the framework or netstandard2.0 complains.
+                            values.Add(ConvertByteToStringSid(bytes));
                             continue;
                         }
                         if (string.Equals(attribute.Name, "objectGuid", StringComparison.OrdinalIgnoreCase))
@@ -246,6 +245,58 @@ namespace Pxtl.ADServices
                 return DateTime.FromFileTime(parsed).ToLocalTime();
             }
             return null;
+        }
+
+        /// <summary>
+        /// Normally the way to convert a binary SID to a String is to use
+        /// System.Security.Principal.SecurityIdentifier, but that class is
+        /// incompatible with netstandard2.0, so we must use an alternate
+        /// implementation.
+        /// </summary>
+        /// <remarks>
+        /// Adapted from
+        /// https://gist.github.com/thohng/8820153f7d1e107b6619b34fd765f887 .
+        /// Some modifications were needed to run it on NET48.  This code
+        /// requires the use of ReadOnlySpan objects, which are not supported in
+        /// netstandard2.0 without the System.Memory polyfill nuget package.
+        /// </remarks>
+        public static string ConvertByteToStringSid(byte[] sidBytes)
+        {
+            if (sidBytes == null || sidBytes.Length < 8 ||
+                sidBytes.Length > 68)   // maximum 15 sub authorities
+                return string.Empty;
+
+            var span = new ReadOnlySpan<byte>(sidBytes);
+
+            var strSid = new StringBuilder("S-");
+
+            // Add SID revision.
+            strSid.Append(span[0]);
+
+            // Get sub authority count...
+            var subAuthoritiesLength = Convert.ToInt32(span[1]);
+            if (sidBytes.Length != 8 + subAuthoritiesLength * 4)
+                return string.Empty;
+
+            long identifierAuthority =
+                (((long)span[2]) << 40) +
+                (((long)span[3]) << 32) +
+                (((long)span[4]) << 24) +
+                (((long)span[5]) << 16) +
+                (((long)span[6]) << 8) +
+                span[7];
+            strSid.Append('-');
+            strSid.Append(identifierAuthority);
+
+            span = span.Slice(8);
+
+            for (int i = 0; i < subAuthoritiesLength; i++, span = span.Slice(4))
+            {
+                strSid.Append('-');
+                strSid.Append(BitConverter.ToUInt32(span.Slice(0, 4).ToArray(), 0));
+            }
+
+            return strSid.ToString();
         }
     }
 }

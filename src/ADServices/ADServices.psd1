@@ -13,10 +13,20 @@ feature-incomplete at this time.
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '5.1'
 
-    RootModule = 'bin\net48\ADServices.dll'
+    RootModule = 'bin\netstandard2.0\ADServices.dll'
     CmdletsToExport = '*'
-    CompatiblePSEditions = @('Desktop')
-    FileList=@('bin\net48\ADServices.dll', 'bin\net48\System.Management.Automation.dll', 'bin\net48\ADServices.pdb')
+    CompatiblePSEditions = @('Desktop', 'Core')
+    FileList = @(
+        'bin\netstandard2.0\ADServices.dll'
+        'bin\netstandard2.0\ADServices.pdb'
+        'bin\netstandard2.0\System.Buffers.dll'
+        'bin\netstandard2.0\System.DirectoryServices.Protocols.dll'
+        'bin\netstandard2.0\System.Management.Automation.dll'
+        'bin\netstandard2.0\System.Memory.dll'
+        'bin\netstandard2.0\System.Numerics.Vectors.dll'
+        'bin\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll'
+        'bin\netstandard2.0\System.Security.Principal.Windows.dll'
+    )
 
     PrivateData = @{
         PSData = @{

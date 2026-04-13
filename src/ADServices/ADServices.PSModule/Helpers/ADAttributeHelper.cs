@@ -10,10 +10,13 @@ namespace Pxtl.ADServices
         /// Get value from attributes dictionary. Returns null if not found.
         /// </summary>
         internal static object GetValue(Dictionary<string, object> attributes, string key)
-        {
-            return attributes.TryGetValue(key, out var value) ? value : null;
-        }
+            => attributes.TryGetValue(key, out var value) ? value : null;
 
+        /// <summary>
+        /// Get value from attributes dictionary. Returns null if not found.
+        /// </summary>
+        internal static object GetString(Dictionary<string, object> attributes, string key)
+            => NormalizeString(GetValue(attributes, key));
 
         /// <summary>
         /// Gets a bitfield flag within the elements of a given Attributes dictionary
