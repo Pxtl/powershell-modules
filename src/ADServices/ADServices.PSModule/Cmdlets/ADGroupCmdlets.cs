@@ -31,13 +31,13 @@ namespace Pxtl.ADServices.Cmdlets
         /// <summary>
         /// The domain controller to query.
         /// </summary>
-        [Description("The domain controller to query.")]
         [Parameter]
         public string Server { get; set; }
 
         /// <summary>
         /// Credentials for the domain controller.
         /// </summary>
+        [Parameter]
         public PSCredential Credential { get; set; }
 
         protected override void ProcessRecord()
@@ -124,7 +124,7 @@ namespace Pxtl.ADServices.Cmdlets
                     "Global" => GroupTypeFlags.ACCOUNT_GROUP,
                     "DomainLocal" => GroupTypeFlags.RESOURCE_GROUP,
                     "Universal" => GroupTypeFlags.UNIVERSAL_GROUP,
-                    _ => 0L
+                    _ => throw new InvalidOperationException($"{nameof(scope)} was not a possible value.")
                 };
             }
             return groupType;

@@ -30,7 +30,7 @@ namespace Pxtl.ADServices.Cmdlets
                 Identity,
                 null,
                 null,
-                new Hashtable { ["userAccountControl"] = currentValue & UserAccountControlFlags.ACCOUNT_DISABLED },
+                new Hashtable { ["userAccountControl"] = currentValue & ~UserAccountControlFlags.ACCOUNT_DISABLED },
                 Server,
                 Credential,
                 PassThru.ToBool());
