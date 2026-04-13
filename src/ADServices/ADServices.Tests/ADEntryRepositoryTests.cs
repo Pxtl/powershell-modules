@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections;
 using System.IO;
 using System.Management.Automation;
 using System.Net;
@@ -31,7 +32,7 @@ namespace ADServices.Tests
         [TestMethod]
         public void TestNewADOrganizationalUnit()
         {
-            var expectedOUName = "MSTestOU2";
+            var expectedOUName = "MSTestOU";
             var entry = ADEntryRepository.NewADObject(ADEntryType.OrganizationalUnit, "OU", expectedOUName, null, null, null, _server, _credential, false, true);
             var identity = entry?.MaybeGetDistinguishedName();
 
@@ -41,11 +42,11 @@ namespace ADServices.Tests
         [TestMethod]
         public void TestNewADUserUnit()
         {
-            var expectedOUName = "MSTestOU2";
-            var entry = ADEntryRepository.NewADObject(ADEntryType.OrganizationalUnit, "OU", expectedOUName, null, null, null, _server, _credential, false, true);
+            var expectedUserName = "msTestUser1";
+            var entry = ADEntryRepository.NewADObject(ADEntryType.User, "CN", expectedUserName, null, null, null, _server, _credential, false, true);
             var identity = entry?.MaybeGetDistinguishedName();
 
-            ADEntryRepository.RemoveADObject<ADOrganizationalUnitEntry>(identity, _server, _credential);
+            ADEntryRepository.RemoveADObject<ADUserEntry>(identity, _server, _credential);
         }
 
         private static PSCredential ConvertToPSCredential(NetworkCredential networkCredential)

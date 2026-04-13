@@ -6,7 +6,7 @@ namespace Pxtl.ADServices
     /// <remarks>
     /// See https://learn.microsoft.com/en-us/troubleshoot/windows-server/active-directory/useraccountcontrol-manipulate-account-properties
     /// </remarks>
-    internal static class UserAccountControlFlags
+    public static class UserAccountControlFlags
     {
         public const int SCRIPT = 0x01;
         public const int ACCOUNT_DISABLED = 0x02;
