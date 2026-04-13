@@ -3,7 +3,7 @@ using System.Collections.Generic;
 
 namespace Pxtl.ADServices
 {
-    internal class ADUserEntry : ADObjectEntry
+    public class ADUserEntry : ADObjectEntry
     {
         public DateTime? AccountExpirationDate { get; set; }
         public DateTime? AccountLockoutTime { get; set; }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Management.Automation;
+using System.Runtime.Serialization.Json;
 
 namespace Pxtl.ADServices.Cmdlets
 {
@@ -22,7 +23,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var results = ADCommandUtils.TryGetADObjects(ADEntryType.OrganizationalUnit, LDAPFilter, Identity, null, Server, Credential);
+            var results = ADEntryRepository.TryGetADObjects(ADEntryType.OrganizationalUnit, LDAPFilter, Identity, null, Server, Credential);
             foreach (var result in results)
             {
                 WriteObject(result);
@@ -57,17 +58,17 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var entry = ADCommandUtils.NewADObject(ADEntryType.OrganizationalUnit, "OU", Name, OtherAttributes, Path, null, Server, Credential, true, true);
+            var entry = ADEntryRepository.NewADObject(ADEntryType.OrganizationalUnit, "OU", Name, OtherAttributes, Path, null, Server, Credential, false, true);
             var identity = entry?.MaybeGetDistinguishedName() ?? Name;
             if (OtherAttributes != null)
             {
-                ADCommandUtils.SetADObject(ADEntryType.OrganizationalUnit, identity, null, null, OtherAttributes, Server, Credential, false);
-                if (PassThru.IsPresent)
+                ADEntryRepository.SetADObject(ADEntryType.OrganizationalUnit, identity, null, null, OtherAttributes, Server, Credential, false);
+                if (PassThru.ToBool())
                 {
-                    entry = ADCommandUtils.GetADObject(ADEntryType.OrganizationalUnit, null, identity, null, Server, Credential);
+                    entry = ADEntryRepository.GetADObject(ADEntryType.OrganizationalUnit, null, identity, null, Server, Credential);
                 }
             }
-            if (PassThru.IsPresent && entry != null)
+            if (PassThru.ToBool() && entry != null)
             {
                 WriteObject(entry);
             }
@@ -101,8 +102,8 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var result = ADCommandUtils.SetADObject(ADEntryType.OrganizationalUnit, Identity, Add, Remove, Replace, Server, Credential, PassThru.IsPresent);
-            if (PassThru.IsPresent && result != null)
+            var result = ADEntryRepository.SetADObject(ADEntryType.OrganizationalUnit, Identity, Add, Remove, Replace, Server, Credential, PassThru.ToBool());
+            if (PassThru.ToBool() && result != null)
             {
                 WriteObject(result);
             }
@@ -123,7 +124,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            ADCommandUtils.RemoveADObject(ADEntryType.OrganizationalUnit, Identity, Server, Credential);
+            ADEntryRepository.RemoveADObject(ADEntryType.OrganizationalUnit, Identity, Server, Credential);
         }
     }
 
@@ -142,7 +143,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var result = ADCommandUtils.TestADObject(ADEntryType.OrganizationalUnit, Identity, Server, Credential);
+            var result = ADEntryRepository.TestADObject(ADEntryType.OrganizationalUnit, Identity, Server, Credential);
             WriteObject(result);
         }
     }

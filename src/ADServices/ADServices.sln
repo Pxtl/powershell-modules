@@ -1,0 +1,30 @@
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.5.2.0
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "ADServices.PSModule", "ADServices.PSModule\ADServices.PSModule.csproj", "{2067AC4B-8EBD-C523-1287-AA3AF5EDBEC5}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADServices.Tests", "ADServices.Tests\ADServices.Tests.csproj", "{8C34B067-A61F-4D40-BFA3-B9EC6B1BD6B6}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{2067AC4B-8EBD-C523-1287-AA3AF5EDBEC5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{2067AC4B-8EBD-C523-1287-AA3AF5EDBEC5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{2067AC4B-8EBD-C523-1287-AA3AF5EDBEC5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{2067AC4B-8EBD-C523-1287-AA3AF5EDBEC5}.Release|Any CPU.Build.0 = Release|Any CPU
+		{8C34B067-A61F-4D40-BFA3-B9EC6B1BD6B6}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{8C34B067-A61F-4D40-BFA3-B9EC6B1BD6B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{8C34B067-A61F-4D40-BFA3-B9EC6B1BD6B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{8C34B067-A61F-4D40-BFA3-B9EC6B1BD6B6}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {97D85EBB-0AE6-472D-85D8-3A7BA44FC8D3}
+	EndGlobalSection
+EndGlobal

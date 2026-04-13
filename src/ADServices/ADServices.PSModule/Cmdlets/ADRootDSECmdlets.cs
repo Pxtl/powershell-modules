@@ -15,7 +15,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var rootDse = ADCommandUtils.TryGetADObject(ADEntryType.RootDSE, "(objectClass=*)", null, null, Server, Credential);
+            var rootDse = ADEntryRepository.TryGetADObject<ADRootDSEEntry>("(objectClass=*)", null, null, Server, Credential);
             if (rootDse != null)
             {
                 WriteObject(rootDse);
@@ -35,8 +35,14 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var rootDse = ADCommandUtils.TryGetADObject(ADEntryType.RootDSE, "(objectClass=*)", null, null, Server, Credential);
-            if (rootDse != null)
+            ADRootDSEEntry entry = null;
+            try 
+            {
+                entry = ADEntryRepository.TryGetADObject<ADRootDSEEntry>("(objectClass=*)", null, null, Server, Credential);
+            } catch (Exception) {
+                // do nothing.
+            }
+            if (entry != null)
             {
                 WriteObject(true);
             }

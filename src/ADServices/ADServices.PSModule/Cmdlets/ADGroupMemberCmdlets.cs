@@ -25,7 +25,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+            var group = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
             if (group == null)
             {
                 ThrowTerminatingError(new ErrorRecord(new InvalidOperationException($"Group '{Identity}' not found."), "GroupNotFound", ErrorCategory.ObjectNotFound, Identity));
@@ -38,7 +38,7 @@ namespace Pxtl.ADServices.Cmdlets
             }
             foreach (var memberIdentity in Members)
             {
-                var memberObject = ADCommandUtils.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
+                var memberObject = ADEntryRepository.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
                 if (memberObject == null)
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Object '{memberIdentity}' not found."), "MemberNotFound", ErrorCategory.ObjectNotFound, memberIdentity));
@@ -50,11 +50,11 @@ namespace Pxtl.ADServices.Cmdlets
                     WriteError(new ErrorRecord(new InvalidOperationException($"Unable to resolve DN for object '{memberIdentity}'."), "MemberDNMissing", ErrorCategory.InvalidData, memberIdentity));
                     continue;
                 }
-                ADCommandUtils.SetADObject(ADEntryType.Group, Identity, new Hashtable { ["member"] = memberDn }, null, null, Server, Credential, false);
+                ADEntryRepository.SetADObject(ADEntryType.Group, Identity, new Hashtable { ["member"] = memberDn }, null, null, Server, Credential, false);
             }
-            if (PassThru.IsPresent)
+            if (PassThru.ToBool())
             {
-                var result = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+                var result = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
                 if (result != null)
                 {
                     WriteObject(result);
@@ -83,7 +83,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+            var group = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
             if (group == null)
             {
                 ThrowTerminatingError(new ErrorRecord(new InvalidOperationException($"Group '{Identity}' not found."), "GroupNotFound", ErrorCategory.ObjectNotFound, Identity));
@@ -96,7 +96,7 @@ namespace Pxtl.ADServices.Cmdlets
             }
             foreach (var memberIdentity in Members)
             {
-                var memberObject = ADCommandUtils.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
+                var memberObject = ADEntryRepository.TryGetADObject(null, null, memberIdentity, null, Server, Credential);
                 if (memberObject == null)
                 {
                     WriteError(new ErrorRecord(new InvalidOperationException($"Object '{memberIdentity}' not found."), "MemberNotFound", ErrorCategory.ObjectNotFound, memberIdentity));
@@ -108,11 +108,11 @@ namespace Pxtl.ADServices.Cmdlets
                     WriteError(new ErrorRecord(new InvalidOperationException($"Unable to resolve DN for object '{memberIdentity}'."), "MemberDNMissing", ErrorCategory.InvalidData, memberIdentity));
                     continue;
                 }
-                ADCommandUtils.SetADObject(ADEntryType.Group, Identity, null, new Hashtable { ["member"] = memberDn }, null, Server, Credential, false);
+                ADEntryRepository.SetADObject(ADEntryType.Group, Identity, null, new Hashtable { ["member"] = memberDn }, null, Server, Credential, false);
             }
-            if (PassThru.IsPresent)
+            if (PassThru.ToBool())
             {
-                var result = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+                var result = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
                 if (result != null)
                 {
                     WriteObject(result);
@@ -139,7 +139,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var group = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+            var group = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
             if (group == null)
             {
                 return;
@@ -163,11 +163,11 @@ namespace Pxtl.ADServices.Cmdlets
                 yield break;
             }
 
-            var members = ADCommandUtils.TryGetADObjects<ADObjectEntry>(null, $"(memberOf={groupDn})", null, null, Server, Credential);
+            var members = ADEntryRepository.TryGetADObjects<ADObjectEntry>($"(memberOf={groupDn})", null, null, Server, Credential);
             foreach (var member in members)
             {
                 yield return member;
-                if (Recursive.IsPresent)
+                if (Recursive.ToBool())
                 {
                     var memberDn = member?.MaybeGetDistinguishedName();
                     if (!string.IsNullOrWhiteSpace(memberDn))

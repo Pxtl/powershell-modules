@@ -30,7 +30,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var entries = ADCommandUtils.TryGetADObjects(Type, LDAPFilter, Identity, SearchBase, Server, Credential);
+            var entries = ADEntryRepository.TryGetADObjects(Type, LDAPFilter, Identity, SearchBase, Server, Credential);
             if (!string.IsNullOrEmpty(Identity))
             {
                 var list = entries.ToList();
@@ -90,8 +90,8 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var passThru = PassThru.IsPresent;
-            var entry = ADCommandUtils.NewADObject(Type, DistinguishedComponentType, Name, OtherAttributes, Path, DefaultRelativePath, Server, Credential, DoSamAccountName.IsPresent, passThru);
+            var passThru = PassThru.ToBool();
+            var entry = ADEntryRepository.NewADObject(Type, DistinguishedComponentType, Name, OtherAttributes, Path, DefaultRelativePath, Server, Credential, DoSamAccountName.ToBool(), PassThru);
             if (passThru && entry != null)
             {
                 WriteObject(entry);
@@ -129,8 +129,8 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var result = ADCommandUtils.SetADObject(Type, Identity, Add, Remove, Replace, Server, Credential, PassThru.IsPresent);
-            if (PassThru.IsPresent && result != null)
+            var result = ADEntryRepository.SetADObject(Type, Identity, Add, Remove, Replace, Server, Credential, PassThru.ToBool());
+            if (PassThru.ToBool() && result != null)
             {
                 WriteObject(result);
             }
@@ -154,7 +154,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            ADCommandUtils.RemoveADObject(Type, Identity, Server, Credential);
+            ADEntryRepository.RemoveADObject(Type, Identity, Server, Credential);
         }
     }
 
@@ -176,7 +176,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var result = ADCommandUtils.TestADObject(Type, Identity, Server, Credential);
+            var result = ADEntryRepository.TestADObject(Type, Identity, Server, Credential);
             WriteObject(result);
         }
     }

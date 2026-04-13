@@ -1,7 +1,7 @@
 using System.Collections.Generic;
 namespace Pxtl.ADServices
 {
-    internal class ADOrganizationalUnitEntry : ADObjectEntry
+    public class ADOrganizationalUnitEntry : ADObjectEntry
     {
         public string City { get; set; }
         public string Country { get; set; }

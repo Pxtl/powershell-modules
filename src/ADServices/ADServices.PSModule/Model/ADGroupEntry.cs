@@ -2,7 +2,7 @@ using System.Collections.Generic;
 
 namespace Pxtl.ADServices
 {
-    internal class ADGroupEntry : ADObjectEntry
+    public class ADGroupEntry : ADObjectEntry
     {
         public object Members { get; set; }
         public string GroupCategory { get; set; }

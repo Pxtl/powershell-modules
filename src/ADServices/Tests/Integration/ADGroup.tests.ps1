@@ -1,7 +1,7 @@
 Describe 'ADGroup' -Tags Integration {
     BeforeAll {
         Import-Module $PSScriptRoot\ADServicesIntegrationTestModule.psm1
-        Import-Module $PSScriptRoot\..\..\bin\Debug\net48\ADServices.dll
+        Import-Module $PSScriptRoot\..\..\ADServices.psd1
         [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
         $ConnectionParam = Initialize-TestHarness
     }
@@ -39,7 +39,7 @@ Describe 'ADGroup' -Tags Integration {
 
     AfterEach {
         Write-Verbose "Cleanup in $($MyInvocation.MyCommand.ScriptBlock.File | Split-Path -Leaf)."
-        Clear-TestObjects
+        Clear-TestObjects @ConnectionParam
     }
 
     #TODO Test by other Identity types, Set dict, test -LDAPFilter, automate clean-up.

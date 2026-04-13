@@ -1,7 +1,7 @@
 Describe 'ADGroup Membership' -Tags Integration {
     BeforeAll {
         Import-Module $PSScriptRoot\ADServicesIntegrationTestModule.psm1
-        Import-Module $PSScriptRoot\..\..\bin\Debug\net48\ADServices.dll
+        Import-Module $PSScriptRoot\..\..\ADServices.psd1
         [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
         $ConnectionParam = Initialize-TestHarness
     }
@@ -132,6 +132,6 @@ Describe 'ADGroup Membership' -Tags Integration {
 
     AfterEach {
         Write-Verbose "Cleanup in $($MyInvocation.MyCommand.ScriptBlock.File | Split-Path -Leaf)."
-        Clear-TestObjects
+        Clear-TestObjects @ConnectionParam
     }
 }

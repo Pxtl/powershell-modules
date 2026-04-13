@@ -22,7 +22,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var results = ADCommandUtils.TryGetADObjects(ADEntryType.Group, LDAPFilter, Identity, null, Server, Credential);
+            var results = ADEntryRepository.TryGetADObjects(ADEntryType.Group, LDAPFilter, Identity, null, Server, Credential);
             foreach (var result in results)
             {
                 WriteObject(result);
@@ -59,13 +59,13 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var entry = ADCommandUtils.NewADObject(ADEntryType.Group, "CN", Name, OtherAttributes, null, "CN=Users", Server, Credential, true, true);
+            var entry = ADEntryRepository.NewADObject(ADEntryType.Group, "CN", Name, OtherAttributes, null, "CN=Users", Server, Credential, true, true);
             var identity = entry?.MaybeGetDistinguishedName() ?? Name;
             if (!string.IsNullOrWhiteSpace(GroupCategory) || !string.IsNullOrWhiteSpace(GroupScope))
             {
-                ADCommandUtils.SetADObject(ADEntryType.Group, identity, null, null, BuildGroupUpdates(GroupCategory, GroupScope), Server, Credential, false);
+                ADEntryRepository.SetADObject(ADEntryType.Group, identity, null, null, BuildGroupUpdates(GroupCategory, GroupScope), Server, Credential, false);
             }
-            if (PassThru.IsPresent && entry != null)
+            if (PassThru.ToBool() && entry != null)
             {
                 WriteObject(entry);
             }
@@ -76,7 +76,7 @@ namespace Pxtl.ADServices.Cmdlets
             var table = new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (!string.IsNullOrWhiteSpace(category) || !string.IsNullOrWhiteSpace(scope))
             {
-                var current = ADCommandUtils.TryGetADObject(ADEntryType.Group, null, Name, null, Server, Credential);
+                var current = ADEntryRepository.TryGetADObject(ADEntryType.Group, null, Name, null, Server, Credential);
                 var currentType = current.GetAttributeIntValue("groupType");
                 table["groupType"] = ComputeGroupType(currentType, category, scope);
             }
@@ -148,14 +148,14 @@ namespace Pxtl.ADServices.Cmdlets
         protected override void ProcessRecord()
         {
             var replacements = Replace != null ? new Hashtable(Replace, StringComparer.OrdinalIgnoreCase) : new Hashtable(StringComparer.OrdinalIgnoreCase);
-            var current = ADCommandUtils.GetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
+            var current = ADEntryRepository.GetADObject(ADEntryType.Group, null, Identity, null, Server, Credential);
             var currentType = current.GetAttributeIntValue("groupType");
             if (!string.IsNullOrWhiteSpace(GroupCategory) || !string.IsNullOrWhiteSpace(GroupScope))
             {
                 replacements["groupType"] = ComputeGroupType(currentType, GroupCategory, GroupScope);
             }
-            var result = ADCommandUtils.SetADObject(ADEntryType.Group, Identity, Add, Remove, replacements, Server, Credential, PassThru.IsPresent);
-            if (PassThru.IsPresent && result != null)
+            var result = ADEntryRepository.SetADObject(ADEntryType.Group, Identity, Add, Remove, replacements, Server, Credential, PassThru.ToBool());
+            if (PassThru.ToBool() && result != null)
             {
                 WriteObject(result);
             }
@@ -204,7 +204,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            ADCommandUtils.RemoveADObject(ADEntryType.Group, Identity, Server, Credential);
+            ADEntryRepository.RemoveADObject(ADEntryType.Group, Identity, Server, Credential);
         }
     }
 }

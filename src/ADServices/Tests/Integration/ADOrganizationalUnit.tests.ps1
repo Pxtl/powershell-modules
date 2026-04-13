@@ -1,7 +1,7 @@
 Describe 'ADOrganizationalUnit' -Tags Integration {
     BeforeAll {
         Import-Module $PSScriptRoot\ADServicesIntegrationTestModule.psm1
-        Import-Module $PSScriptRoot\..\..\bin\Debug\net48\ADServices.dll
+        Import-Module $PSScriptRoot\..\..\ADServices.psd1
         [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
         $global:ConnectionParam = Initialize-TestHarness
     }
@@ -11,9 +11,9 @@ Describe 'ADOrganizationalUnit' -Tags Integration {
         $parentPath = 'OU=Subdir,OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
         $distinguishedName = "OU=$testOrganizationalUnitName,$parentPath"
         $expectedDistinguishedName = $distinguishedName -replace '\\', ''
-        New-ADOrganizationalUnit @global:ConnectionParam -Name 'Alternate OrganizationalUnits'
-        New-ADOrganizationalUnit @global:ConnectionParam -Name 'Subdir' -Path 'OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
-        New-ADOrganizationalUnit @global:ConnectionParam -Name $testOrganizationalUnitName -Path $parentPath
+        New-ADOrganizationalUnit @ConnectionParam -Name 'Alternate OrganizationalUnits'
+        New-ADOrganizationalUnit @ConnectionParam -Name 'Subdir' -Path 'OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
+        New-ADOrganizationalUnit @ConnectionParam -Name $testOrganizationalUnitName -Path $parentPath
         
         $result = Get-ADOrganizationalUnit @ConnectionParam -Identity $distinguishedName
         $result.distinguishedName | Should -Be $expectedDistinguishedName
@@ -44,6 +44,6 @@ Describe 'ADOrganizationalUnit' -Tags Integration {
 
     AfterEach {
         Write-Verbose "Cleanup in $($MyInvocation.MyCommand.ScriptBlock.File | Split-Path -Leaf)."
-        Clear-TestObjects
+        Clear-TestObjects @ConnectionParam
     }
 }

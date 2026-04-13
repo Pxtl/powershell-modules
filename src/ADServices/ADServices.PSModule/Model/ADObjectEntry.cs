@@ -4,7 +4,7 @@ using System.Linq;
 
 namespace Pxtl.ADServices
 {
-    internal class ADObjectEntry : ADEntry
+    public class ADObjectEntry : ADEntry
     {
         public string ObjectClass { get; set; }
         public string DistinguishedName { get; set; }

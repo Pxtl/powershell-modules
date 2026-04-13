@@ -7,11 +7,13 @@ using System.Management.Automation;
 
 namespace Pxtl.ADServices
 {
-    internal static class ADCommandUtils
+    public static class ADEntryRepository
     {
-        public static IEnumerable<T> TryGetADObjects<T>(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
+        private readonly static ADEntryType[] UnfilteredADEntryTypes = { ADEntryType.Object, ADEntryType.RootDSE };
+        public static IEnumerable<T> TryGetADObjects<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
             where T : ADEntry, new()
         {
+            var type = GetEntryTypeFromEntryClass(typeof(T));
             if (!string.IsNullOrEmpty(identity))
             {
                 ldapFilter = LdapHelper.ConvertIdentityToFilter(identity);
@@ -21,15 +23,15 @@ namespace Pxtl.ADServices
                 throw new ArgumentException("LDAPFilter or Identity must be supplied.", nameof(ldapFilter));
             }
             string filter;
-            if (!type.HasValue)
-            {
-                filter = $"(&({LdapHelper.BuildObjectClassFilter(type.Value)})({ldapFilter}))";
-            }
-            else
+            if (UnfilteredADEntryTypes.Contains(type))
             {
                 filter = $"({ldapFilter})";
             }
-            return LdapHelper.SearchObjects<T>(filter, searchBase, server, credential);
+            else
+            {
+                filter = $"(&({LdapHelper.BuildObjectClassFilter(type)})({ldapFilter}))";
+            }
+            return LdapHelper.SearchObjects<T>(filter, searchBase, server, credential, "*");
         }
 
         public static IEnumerable<ADEntry> TryGetADObjects(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
@@ -37,24 +39,24 @@ namespace Pxtl.ADServices
             type ??= ADEntryType.Object;
             return type.Value switch
             {
-                ADEntryType.User => TryGetADObjects<ADUserEntry>(type, ldapFilter, identity, searchBase, server, credential),
-                ADEntryType.Group => TryGetADObjects<ADGroupEntry>(type, ldapFilter, identity, searchBase, server, credential),
-                ADEntryType.OrganizationalUnit => TryGetADObjects<ADOrganizationalUnitEntry>(type, ldapFilter, identity, searchBase, server, credential),
-                ADEntryType.RootDSE => TryGetADObjects<ADRootDSEEntry>(type, ldapFilter, identity, searchBase, server, credential),
-                _ => TryGetADObjects<ADObjectEntry>(type, ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.User => TryGetADObjects<ADUserEntry>(ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.Group => TryGetADObjects<ADGroupEntry>(ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.OrganizationalUnit => TryGetADObjects<ADOrganizationalUnitEntry>(ldapFilter, identity, searchBase, server, credential),
+                ADEntryType.RootDSE => TryGetADObjects<ADRootDSEEntry>(ldapFilter, identity, searchBase, server, credential),
+                _ => TryGetADObjects<ADObjectEntry>(ldapFilter, identity, searchBase, server, credential),
             };
         }
 
-        public static T TryGetADObject<T>(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
+        public static T TryGetADObject<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            return TryGetADObjects<T>(type, ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
+            return TryGetADObjects<T>(ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
         }
 
-        public static T GetADObject<T>(ADEntryType? type, string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
+        public static T GetADObject<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            var entry = TryGetADObjects<T>(type, ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
+            var entry = TryGetADObjects<T>(ldapFilter, identity, searchBase, server, credential).FirstOrDefault();
             return (entry == null)
                 ? throw new KeyNotFoundException($"LDAP object '{identity} was not found on '{server}'.")
                 : entry;
@@ -78,13 +80,13 @@ namespace Pxtl.ADServices
             return TryGetADObjects(type, null, identity, null, server, credential).Any();
         }
 
-        public static bool TestADObject<T>(ADEntryType? type, string identity, string server, PSCredential credential)
+        public static bool TestADObject<T>(string identity, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            return TryGetADObjects<T>(type, null, identity, null, server, credential).Any();
+            return TryGetADObjects<T>(null, identity, null, server, credential).Any();
         }
 
-        public static T NewADObject<T>(ADEntryType type, string distinguishedComponentType, string name, Hashtable otherAttributes, string path, string defaultRelativePath, string server, PSCredential credential, bool doSamAccountName, bool passThru)
+        public static T NewADObject<T>(string distinguishedComponentType, string name, Hashtable otherAttributes, string path, string defaultRelativePath, string server, PSCredential credential, bool doSamAccountName, bool passThru)
             where T : ADEntry, new()
         {
             if (string.IsNullOrWhiteSpace(path))
@@ -96,7 +98,7 @@ namespace Pxtl.ADServices
                 }
             }
 
-            if (!TestADObject<ADObjectEntry>(ADEntryType.Object, path, server, credential))
+            if (!TestADObject<ADObjectEntry>(path, server, credential))
             {
                 throw new InvalidOperationException($"Parent container node '{path}' not found.");
             }
@@ -112,7 +114,11 @@ namespace Pxtl.ADServices
 
             if (doSamAccountName)
             {
-                var existing = TryGetADObjects<ADObjectEntry>(ADEntryType.Object, "sAMAccountName=" + name, null, null, server, credential);
+                if (typeof(T) == typeof(ADOrganizationalUnitEntry))
+                {
+                    throw new InvalidOperationException($"{nameof(ADOrganizationalUnitEntry)} cannot have a sAMAccountName");
+                }
+                var existing = TryGetADObjects<ADObjectEntry>("sAMAccountName=" + name, null, null, server, credential);
                 if (existing.Any())
                 {
                     throw new InvalidOperationException($"There is already an existing entry with sAMAccountName '{name}'.");
@@ -122,6 +128,7 @@ namespace Pxtl.ADServices
 
             var distinguishedName = $"{distinguishedComponentType}={name},{path}";
             using var connection = LdapHelper.CreateConnection(server, credential);
+            var type = GetEntryTypeFromEntryClass(typeof(T));
             var addRequest = new AddRequest(distinguishedName, type.ToADObjectClassName());
             foreach (var attr in attributes)
             {
@@ -131,7 +138,7 @@ namespace Pxtl.ADServices
 
             if (passThru)
             {
-                return TryGetADObject<T>(type, null, distinguishedName, null, server, credential);
+                return TryGetADObject<T>(null, distinguishedName, null, server, credential);
             }
             return null;
         }
@@ -140,17 +147,17 @@ namespace Pxtl.ADServices
         {
             return type switch
             {
-                ADEntryType.User => NewADObject<ADUserEntry>(type, distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
-                ADEntryType.Group => NewADObject<ADGroupEntry>(type, distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
-                ADEntryType.OrganizationalUnit => NewADObject<ADOrganizationalUnitEntry>(type, distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
-                _ => NewADObject<ADObjectEntry>(type, distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
+                ADEntryType.User => NewADObject<ADUserEntry>(distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
+                ADEntryType.Group => NewADObject<ADGroupEntry>(distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
+                ADEntryType.OrganizationalUnit => NewADObject<ADOrganizationalUnitEntry>(distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
+                _ => NewADObject<ADObjectEntry>(distinguishedComponentType, name, otherAttributes, path, defaultRelativePath, server, credential, doSamAccountName, passThru),
             };
         }
 
-        public static T SetADObject<T>(ADEntryType type, string identity, Hashtable add, Hashtable remove, Hashtable replace, string server, PSCredential credential, bool passThru)
+        public static T SetADObject<T>(string identity, Hashtable add, Hashtable remove, Hashtable replace, string server, PSCredential credential, bool passThru)
             where T : ADEntry, new()
         {
-            var entry = TryGetADObjects<T>(type, null, identity, null, server, credential).ToList();
+            var entry = TryGetADObjects<T>(null, identity, null, server, credential).ToList();
             if (entry.Count == 1)
             {
                 var modifications = new List<DirectoryAttributeModification>();
@@ -188,10 +195,11 @@ namespace Pxtl.ADServices
                 }
                 if (passThru)
                 {
-                    return TryGetADObject<T>(type, null, identity, null, server, credential);
+                    return TryGetADObject<T>(null, identity, null, server, credential);
                 }
                 return null;
             }
+            var type = GetEntryTypeFromEntryClass(typeof(T));
             if (!entry.Any())
             {
                 throw new InvalidOperationException($"Could not find {type} '{identity}', cannot modify.");
@@ -203,17 +211,17 @@ namespace Pxtl.ADServices
         {
             return type switch
             {
-                ADEntryType.User => SetADObject<ADUserEntry>(type, identity, add, remove, replace, server, credential, passThru),
-                ADEntryType.Group => SetADObject<ADGroupEntry>(type, identity, add, remove, replace, server, credential, passThru),
-                ADEntryType.OrganizationalUnit => SetADObject<ADOrganizationalUnitEntry>(type, identity, add, remove, replace, server, credential, passThru),
-                _ => SetADObject<ADObjectEntry>(type, identity, add, remove, replace, server, credential, passThru),
+                ADEntryType.User => SetADObject<ADUserEntry>(identity, add, remove, replace, server, credential, passThru),
+                ADEntryType.Group => SetADObject<ADGroupEntry>(identity, add, remove, replace, server, credential, passThru),
+                ADEntryType.OrganizationalUnit => SetADObject<ADOrganizationalUnitEntry>(identity, add, remove, replace, server, credential, passThru),
+                _ => SetADObject<ADObjectEntry>(identity, add, remove, replace, server, credential, passThru),
             };
         }
 
-        public static void RemoveADObject<T>(ADEntryType type, string identity, string server, PSCredential credential)
+        public static void RemoveADObject<T>(string identity, string server, PSCredential credential)
             where T : ADEntry, new()
         {
-            var entry = TryGetADObjects<T>(type, null, identity, null, server, credential).ToList();
+            var entry = TryGetADObjects<T>(null, identity, null, server, credential).ToList();
             if (entry.Count == 1)
             {
                 using var connection = LdapHelper.CreateConnection(server, credential);
@@ -222,6 +230,7 @@ namespace Pxtl.ADServices
                 connection.SendRequest(deleteRequest);
                 return;
             }
+            var type = GetEntryTypeFromEntryClass(typeof(T));
             if (!entry.Any())
             {
                 throw new InvalidOperationException($"Could not find {type} '{identity}', cannot remove.");
@@ -234,18 +243,31 @@ namespace Pxtl.ADServices
             switch (type)
             {
                 case ADEntryType.User:
-                    RemoveADObject<ADUserEntry>(type, identity, server, credential);
+                    RemoveADObject<ADUserEntry>(identity, server, credential);
                     break;
                 case ADEntryType.Group:
-                    RemoveADObject<ADGroupEntry>(type, identity, server, credential);
+                    RemoveADObject<ADGroupEntry>(identity, server, credential);
                     break;
                 case ADEntryType.OrganizationalUnit:
-                    RemoveADObject<ADOrganizationalUnitEntry>(type, identity, server, credential);
+                    RemoveADObject<ADOrganizationalUnitEntry>(identity, server, credential);
                     break;
                 default:
-                    RemoveADObject<ADObjectEntry>(type, identity, server, credential);
+                    RemoveADObject<ADObjectEntry>(identity, server, credential);
                     break;
             }
         }
+
+        public static ADEntryType GetEntryTypeFromEntryClass(Type type)
+            => (type == typeof(ADObjectEntry))
+            ? ADEntryType.Object
+            : (type == typeof(ADRootDSEEntry))
+            ? ADEntryType.RootDSE
+            : (type == typeof(ADUserEntry))
+            ? ADEntryType.User
+            : (type == typeof(ADGroupEntry))
+            ? ADEntryType.Group
+            : (type == typeof(ADOrganizationalUnitEntry))
+            ? ADEntryType.OrganizationalUnit
+            : throw new InvalidOperationException("Not a valid ADEntry type.");
     }
 }

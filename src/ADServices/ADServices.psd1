@@ -1,5 +1,5 @@
 @{  
-    ModuleVersion = '0.2.0'
+    ModuleVersion = '0.3.0'
     GUID = 'c29c8e32-38a3-4ed4-acc3-11ad44bcab3c'
     Author = 'Martin C Zarate (AKA Pxtl)'
     Copyright = '2025, Martin C Zarate'
@@ -13,7 +13,7 @@ feature-incomplete at this time.
     # Minimum version of the Windows PowerShell engine required by this module
     PowerShellVersion = '5.1'
 
-    RootModule = 'ADServices.dll'
+    RootModule = 'bin\net48\ADServices.dll'
     CmdletsToExport = '*'
     CompatiblePSEditions = @('Desktop')
 
@@ -25,6 +25,9 @@ feature-incomplete at this time.
             ProjectUri = 'https://github.com/Pxtl/powershell-modules'
             # IconUri = ''
             ReleaseNotes = @'
+v0.3.0
+- converted module to .NET Framework 0imp.4.8
+
 v0.2.0
 - rewrote module using System.DirectoryServices.Protocols instead of SystemDirectoryServices
 - supports ADOrganizationalUnit, ADRootDSE

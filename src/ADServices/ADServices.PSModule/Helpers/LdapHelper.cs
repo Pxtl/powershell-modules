@@ -51,26 +51,33 @@ namespace Pxtl.ADServices
         public static string GetDefaultNamingContext(string server, PSCredential credential)
         {
             using var connection = CreateConnection(server, credential);
-            var request = new SearchRequest(null, "(objectClass=*)", SearchScope.Base, "defaultNamingContext");
-            var response = (SearchResponse)connection.SendRequest(request);
-            var entry = response.Entries.Cast<SearchResultEntry>().FirstOrDefault();
+            var entry = SearchObjects<ADRootDSEEntry>("(objectClass=*)", null, server, credential, "defaultNamingContext")
+                .FirstOrDefault();
             if (entry == null)
             {
                 return null;
             }
-            var attribute = entry.Attributes["defaultNamingContext"];
-            return attribute?.GetValues(typeof(string)).Cast<string>().FirstOrDefault();
+            return (string)entry.Attributes["defaultNamingContext"];
         }
 
-        public static IEnumerable<T> SearchObjects<T>(string filter, string searchBase, string server, PSCredential credential)
+        public static IEnumerable<T> SearchObjects<T>(string filter, string searchBase, string server, PSCredential credential, params string[] attributeList)
             where T : ADEntry, new()
         {
-            if (string.IsNullOrWhiteSpace(searchBase))
+            var searchScope = SearchScope.Subtree;
+
+            // special search params needed for ADRootDSE.
+            if (typeof(T) == typeof(ADRootDSEEntry))
+            {
+                searchScope = SearchScope.Base;
+                searchBase = null;
+            }
+            else if (string.IsNullOrWhiteSpace(searchBase))
             {
                 searchBase = GetDefaultNamingContext(server, credential);
             }
+
             using var connection = CreateConnection(server, credential);
-            var request = new SearchRequest(searchBase, filter, SearchScope.Subtree, "*");
+            var request = new SearchRequest(searchBase, filter, searchScope, attributeList);
             var response = (SearchResponse)connection.SendRequest(request);
             foreach (SearchResultEntry entry in response.Entries)
             {

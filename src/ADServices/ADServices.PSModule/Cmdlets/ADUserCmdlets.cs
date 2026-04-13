@@ -22,7 +22,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var results = ADCommandUtils.TryGetADObjects(ADEntryType.User, LDAPFilter, Identity, null, Server, Credential);
+            var results = ADEntryRepository.TryGetADObjects(ADEntryType.User, LDAPFilter, Identity, null, Server, Credential);
             foreach (var result in results)
             {
                 WriteObject(result);
@@ -65,18 +65,18 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var entry = ADCommandUtils.NewADObject(ADEntryType.User, "CN", Name, OtherAttributes, Path, "CN=Users", Server, Credential, true, true);
+            var entry = ADEntryRepository.NewADObject(ADEntryType.User, "CN", Name, OtherAttributes, Path, "CN=Users", Server, Credential, true, true);
             var identity = entry?.MaybeGetDistinguishedName() ?? Name;
             if (Enabled.HasValue || OtherAttributes != null)
             {
                 var currentValue = entry.GetAttributeIntValue("userAccountControl");
-                ADCommandUtils.SetADObject(ADEntryType.User, identity, null, null, BuildUserReplace(Enabled, currentValue), Server, Credential, false);
-                if (PassThru.IsPresent)
+                ADEntryRepository.SetADObject(ADEntryType.User, identity, null, null, BuildUserReplace(Enabled, currentValue), Server, Credential, false);
+                if (PassThru.ToBool())
                 {
-                    entry = ADCommandUtils.GetADObject(ADEntryType.User, null, identity, null, Server, Credential);
+                    entry = ADEntryRepository.GetADObject(ADEntryType.User, null, identity, null, Server, Credential);
                 }
             }
-            if (PassThru.IsPresent && entry != null)
+            if (PassThru.ToBool() && entry != null)
             {
                 WriteObject(entry);
             }
@@ -126,12 +126,12 @@ namespace Pxtl.ADServices.Cmdlets
             var replaceTable = Replace != null ? new Hashtable(Replace, StringComparer.OrdinalIgnoreCase) : new Hashtable(StringComparer.OrdinalIgnoreCase);
             if (Enabled.HasValue)
             {
-                var currentValue = ADCommandUtils.GetADObject(ADEntryType.User, null, Identity, null, Server, Credential)
+                var currentValue = ADEntryRepository.GetADObject(ADEntryType.User, null, Identity, null, Server, Credential)
                     .GetAttributeIntValue("userAccountControl");
                 replaceTable["userAccountControl"] = Enabled.Value ? (currentValue & ~2) : (currentValue | 2);
             }
-            var result = ADCommandUtils.SetADObject(ADEntryType.User, Identity, Add, Remove, replaceTable, Server, Credential, PassThru.IsPresent);
-            if (PassThru.IsPresent && result != null)
+            var result = ADEntryRepository.SetADObject(ADEntryType.User, Identity, Add, Remove, replaceTable, Server, Credential, PassThru.ToBool());
+            if (PassThru.ToBool() && result != null)
             {
                 WriteObject(result);
             }
@@ -152,7 +152,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            ADCommandUtils.RemoveADObject(ADEntryType.User, Identity, Server, Credential);
+            ADEntryRepository.RemoveADObject(ADEntryType.User, Identity, Server, Credential);
         }
     }
 
@@ -171,7 +171,7 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var result = ADCommandUtils.TestADObject(ADEntryType.User, Identity, Server, Credential);
+            var result = ADEntryRepository.TestADObject(ADEntryType.User, Identity, Server, Credential);
             WriteObject(result);
         }
     }

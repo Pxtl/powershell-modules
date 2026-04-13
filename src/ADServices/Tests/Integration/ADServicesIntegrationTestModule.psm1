@@ -1,4 +1,4 @@
-Import-Module $PSScriptRoot\..\..\bin\Debug\net48\ADServices.dll
+Import-Module $PSScriptRoot\..\..\ADServices.psd1
 
 function Initialize-TestHarness {
     <#
@@ -12,21 +12,21 @@ function Initialize-TestHarness {
         [string] $Server = 'localhost:389',
 
         [Parameter()]
-        [Management.Automation.PSCredential] $PSCredential
+        [Management.Automation.PSCredential] $Credential
     )
     process {
-        if (-not $PSCredential) {
+        if (-not $Credential) {
             # default credentials for smblds
-            $PSCredential = [Management.Automation.PSCredential]::new('Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
+            $Credential = [Management.Automation.PSCredential]::new('Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
         }
-        if (-not (Test-ADRootDSE -Server $Server -Credential $PSCredential)) {
+        if (-not (Test-ADRootDSE -Server $Server -Credential $Credential)) {
             # need to Out-Host so that the credentials are the only output in main pipeline.
             docker compose -f "$PSScriptRoot\adservices-testdocker\docker-compose.yml" up -d --wait | Out-Host
         }
 
         # output
         @{
-            Credential = $PSCredential
+            Credential = $Credential
             Server = $Server
         }
     }
@@ -39,11 +39,21 @@ function Clear-TestObjects {
         Clear all non-built-in objects from the LDAP server.
     #>
     [CmdletBinding()]
-    param()
+    param (
+        [Parameter()]
+        [string] $Server = 'localhost:389',
+
+        [Parameter()]
+        [Management.Automation.PSCredential] $Credential
+    )
     process {
         $builtInUserDistinguishedNames = Get-BuiltInUserDistinguishedNames
+        $ConnectionParam = @{
+            Credential = $Credential
+            Server = $Server
+        }
 
-        # Cleanup ADUsers.
+        Write-Verbose "Cleanup ADUsers."
         Get-ADUser @ConnectionParam -LDAPFilter 'sAMAccountName=*' |
             Select-Object -ExpandProperty distinguishedName |
             Where-Object { 
@@ -51,12 +61,13 @@ function Clear-TestObjects {
             } |
             Sort-Object Length -Descending | # order by length so leaves are removed first where the object acts as a container.
             ForEach-Object {
+                Write-Verbose "Removing $_"
                 Remove-ADUser @ConnectionParam $_
             }
 
-        $builtInGroupDistinguishedNames = Get-BuiltInUserDistinguishedNames
+        $builtInGroupDistinguishedNames = Get-BuiltInGroupDistinguishedNames
 
-        # Cleanup ADGroups.
+        Write-Verbose "Cleanup ADGroups."
         Get-ADGroup @ConnectionParam -LDAPFilter 'sAMAccountName=*' |
             Select-Object -ExpandProperty distinguishedName |
             Where-Object {
@@ -64,12 +75,13 @@ function Clear-TestObjects {
             } |
             Sort-Object Length -Descending | # order by length so leaves are removed first where the object acts as a container.
             ForEach-Object {
+                Write-Verbose "Removing $_"
                 Remove-ADGroup @ConnectionParam $_
             }
         
         $builtInOrganizationalUnitDistinguishedNames = Get-BuiltInOrganizationalUnitDistinguishedNames
         
-        # Cleanup ADOrganizationalUnits.
+        Write-Verbose  "Cleanup ADOrganizationalUnits."
         Get-ADOrganizationalUnit @ConnectionParam -LDAPFilter 'distinguishedName=*' |
             Select-Object -ExpandProperty distinguishedName |
             Where-Object { 
@@ -77,16 +89,17 @@ function Clear-TestObjects {
             } | 
             Sort-Object Length -Descending | # order by length so leaves are removed first where the object acts as a container.
             ForEach-Object {
+                Write-Verbose "Removing $_"
                 Remove-ADOrganizationalUnit @ConnectionParam -Identity $_
             }
     }
 }
 
 
-function Get-BuiltInUserDistinguishedNames {
+function Get-BuiltInGroupDistinguishedNames {
     <#
     .SYNOPSIS
-    List of built-in User distinguished names in smblds/smblds docker container
+    List of built-in group distinguished names in smblds/smblds docker container
     #>
     [CmdletBinding()]
     param()
@@ -135,10 +148,10 @@ function Get-BuiltInUserDistinguishedNames {
 }
 
 
-function Get-BuiltInGroupDistinguishedNames {
+function Get-BuiltInUserDistinguishedNames {
     <#
     .SYNOPSIS
-    List of built-in Group distinguished names in smblds/smblds docker container
+    List of built-in use distinguished names in smblds/smblds docker container
     #>
     [CmdletBinding()]
     param()

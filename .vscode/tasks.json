@@ -9,6 +9,14 @@
             "group": "build",
             "problemMatcher": [],
             "label": "dotnet: build"
+        },
+        {
+            "type": "dotnet",
+            "task": "build C:\\Users\\pxtl\\OneDrive\\Documents\\GitHub\\powershell-modules\\src\\ADServices\\ADServices.csproj",
+            "file": "C:\\Users\\pxtl\\OneDrive\\Documents\\GitHub\\powershell-modules\\src\\ADServices\\ADServices.csproj",
+            "group": "build",
+            "problemMatcher": [],
+            "label": "dotnet: build C:\\Users\\pxtl\\OneDrive\\Documents\\GitHub\\powershell-modules\\src\\ADServices\\ADServices.csproj"
         }
     ]
 }

@@ -23,10 +23,10 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var existing = ADCommandUtils.TryGetADObject(ADEntryType.User, null, Identity, null, Server, Credential);
+            var existing = ADEntryRepository.TryGetADObject(ADEntryType.User, null, Identity, null, Server, Credential);
             var currentValue = existing.GetAttributeIntValue("userAccountControl");
-            var result = ADCommandUtils.SetADObject(ADEntryType.User, Identity, null, null, new Hashtable { ["userAccountControl"] = currentValue & ~2 }, Server, Credential, PassThru.IsPresent);
-            if (PassThru.IsPresent && result != null)
+            var result = ADEntryRepository.SetADObject(ADEntryType.User, Identity, null, null, new Hashtable { ["userAccountControl"] = currentValue & ~2 }, Server, Credential, PassThru.ToBool());
+            if (PassThru.ToBool() && result != null)
             {
                 WriteObject(result);
             }
@@ -51,10 +51,10 @@ namespace Pxtl.ADServices.Cmdlets
 
         protected override void ProcessRecord()
         {
-            var existing = ADCommandUtils.TryGetADObject(ADEntryType.User, null, Identity, null, Server, Credential);
+            var existing = ADEntryRepository.TryGetADObject(ADEntryType.User, null, Identity, null, Server, Credential);
             var currentValue = existing.GetAttributeIntValue("userAccountControl");
-            var result = ADCommandUtils.SetADObject(ADEntryType.User, Identity, null, null, new Hashtable { ["userAccountControl"] = currentValue | 2 }, Server, Credential, PassThru.IsPresent);
-            if (PassThru.IsPresent && result != null)
+            var result = ADEntryRepository.SetADObject(ADEntryType.User, Identity, null, null, new Hashtable { ["userAccountControl"] = currentValue | 2 }, Server, Credential, PassThru.ToBool());
+            if (PassThru.ToBool() && result != null)
             {
                 WriteObject(result);
             }

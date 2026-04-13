@@ -3,7 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 namespace Pxtl.ADServices
 {
-    internal class ADRootDSEEntry : ADEntry
+    public class ADRootDSEEntry : ADEntry
     {
         public override void Hydrate(Dictionary<string, object> ldapAttributes)
         {
