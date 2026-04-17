@@ -16,18 +16,6 @@ feature-incomplete at this time.
     RootModule = 'bin\netstandard2.0\ADServices.dll'
     CmdletsToExport = '*'
     CompatiblePSEditions = @('Desktop', 'Core')
-    FileList = @(
-        'ADServices.psd1'
-        'bin\netstandard2.0\ADServices.dll'
-        'bin\netstandard2.0\ADServices.pdb'
-        'bin\netstandard2.0\System.Buffers.dll'
-        'bin\netstandard2.0\System.DirectoryServices.Protocols.dll'
-        'bin\netstandard2.0\System.Management.Automation.dll'
-        'bin\netstandard2.0\System.Memory.dll'
-        'bin\netstandard2.0\System.Numerics.Vectors.dll'
-        'bin\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll'
-        'bin\netstandard2.0\System.Security.Principal.Windows.dll'
-    )
     RequiredAssemblies = @(
         'bin\netstandard2.0\System.Buffers.dll'
         'bin\netstandard2.0\System.DirectoryServices.Protocols.dll'
