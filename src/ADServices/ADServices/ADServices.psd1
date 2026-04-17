@@ -1,5 +1,5 @@
 @{  
-    ModuleVersion = '0.3.0'
+    ModuleVersion = '0.3.1'
     GUID = 'c29c8e32-38a3-4ed4-acc3-11ad44bcab3c'
     Author = 'Martin C Zarate (AKA Pxtl)'
     Copyright = '2025, Martin C Zarate'
@@ -17,8 +17,18 @@ feature-incomplete at this time.
     CmdletsToExport = '*'
     CompatiblePSEditions = @('Desktop', 'Core')
     FileList = @(
+        'ADServices.psd1'
         'bin\netstandard2.0\ADServices.dll'
         'bin\netstandard2.0\ADServices.pdb'
+        'bin\netstandard2.0\System.Buffers.dll'
+        'bin\netstandard2.0\System.DirectoryServices.Protocols.dll'
+        'bin\netstandard2.0\System.Management.Automation.dll'
+        'bin\netstandard2.0\System.Memory.dll'
+        'bin\netstandard2.0\System.Numerics.Vectors.dll'
+        'bin\netstandard2.0\System.Runtime.CompilerServices.Unsafe.dll'
+        'bin\netstandard2.0\System.Security.Principal.Windows.dll'
+    )
+    RequiredAssemblies = @(
         'bin\netstandard2.0\System.Buffers.dll'
         'bin\netstandard2.0\System.DirectoryServices.Protocols.dll'
         'bin\netstandard2.0\System.Management.Automation.dll'
@@ -36,6 +46,9 @@ feature-incomplete at this time.
             ProjectUri = 'https://github.com/Pxtl/powershell-modules'
             # IconUri = ''
             ReleaseNotes = @'
+v0.3.1
+- restrict manifest to not include peripheral files
+
 v0.3.0
 - converted module to .NET Framework 4.8
 

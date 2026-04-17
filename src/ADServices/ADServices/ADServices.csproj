@@ -1,0 +1,10 @@
+﻿<Project Sdk="Microsoft.Build.NoTargets">
+  <PropertyGroup>
+    <TargetFrameworks>net48</TargetFrameworks>
+    <LangVersion>8.0</LangVersion>
+    <RootNamespace>Pxtl.ADServices</RootNamespace>
+    <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
+  </PropertyGroup>
+  <ItemGroup>
+  </ItemGroup>
+</Project>
