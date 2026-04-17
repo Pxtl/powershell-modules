@@ -3,6 +3,7 @@
         "Arrayify",
         "bitfield",
         "bitmask",
+        "Dll",
         "DONT",
         "Hashtable",
         "netstandard",

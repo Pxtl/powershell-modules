@@ -1,6 +1,6 @@
 <Project Sdk="Microsoft.Build.NoTargets">
   <PropertyGroup>
-    <!-- not actually used, needed just to keep msbuild happy-->
+    <!-- not actually used, needed just to keep MSBuild happy-->
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 </Project>

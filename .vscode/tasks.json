@@ -6,7 +6,7 @@
         {
             "label": "dotnet build ADServices.PSModule.csproj Debug",
             "type": "shell",
-            "command": "dotnet build ./src/ADServices/ADServices.PSModule/ADServices.PSModule.csproj -c debug",
+            "command": "dotnet build ./src/ADServices/ADServices.ModuleDll/ADServices.ModuleDll.csproj -c debug",
             "group": {
                 "kind": "build",
                 "isDefault": true
@@ -16,7 +16,7 @@
         {
             "label": "dotnet build ADServices.PSModule.csproj Release",
             "type": "shell",
-            "command": "dotnet build ./src/ADServices/ADServices.PSModule/ADServices.PSModule.csproj -c release",
+            "command": "dotnet build ./src/ADServices/ADServices.ModuleDll/ADServices.ModuleDll.csproj -c release",
             "group": {
                 "kind": "build"
             },
