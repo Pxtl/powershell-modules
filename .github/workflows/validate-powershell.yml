@@ -32,15 +32,19 @@ jobs:
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-    runs-on: windows-latest
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
         # build any .NET projects in the directory tree.
       - name: dotnet build
         shell: pwsh
         run: |
-          Get-ChildItem *.sln -Recurse | 
-            ForEach-Object { dotnet build $_ }
+          Get-ChildItem *.sln -Recurse | ForEach-Object { dotnet build $_.FullName }
+      
+      - name: verify build outputs
+        shell: pwsh
+        run: |
+          Get-ChildItem ./src/ADServices/ADServices.PSModule/ADServices
 
       - name: Run PSScriptAnalyzer
         uses: microsoft/psscriptanalyzer-action@6b2948b1944407914a58661c49941824d149734f
