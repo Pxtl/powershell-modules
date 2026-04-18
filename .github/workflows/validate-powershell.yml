@@ -60,16 +60,6 @@ jobs:
 
       - name: Run Pester Unit Tests
         shell: powershell
+        # Pester by default searches for any pester tests that are *.test.ps1
         run: |
-          $modules = Get-ChildItem -Directory -Path ./src
-          foreach ($module in $modules) {
-            $testPath = Join-Path $module.FullName 'Tests'
-            if (Test-Path $testPath) {
-              "Running tests for module: $($module.Name)..."
-              Invoke-Pester -Path "$testPath\*.tests.ps1" -Output Detailed
-            } else {
-              "No tests found for module: $($module.Name). Skipping."
-            }
-          }
-
-      #TODO: Run Pester integration tests
+          Invoke-Pester .\src\ -CI
