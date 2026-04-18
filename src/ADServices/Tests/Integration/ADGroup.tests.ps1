@@ -6,6 +6,10 @@ Describe 'ADGroup' -Tags Integration {
         $ConnectionParam = Initialize-TestHarness
     }
 
+    AfterAll {
+        Get-Module ADServices | Remove-Module
+    }
+
     It 'Can New-ADGroup and Get-ADGroup with the correct sAMAccountName' {
         $testGroupName = 'createGroup1'
         New-ADGroup @ConnectionParam -Name $testGroupName -Verbose:$VerbosePreference

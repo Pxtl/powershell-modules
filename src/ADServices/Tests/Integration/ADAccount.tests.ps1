@@ -7,8 +7,7 @@ Describe 'ADUser' -Tags Integration {
     }
 
     AfterAll {
-        Remove-Module ADServicesIntegrationTestModule
-        Remove-Module ADServices
+        Get-Module ADServices | Remove-Module
     }
 
     It 'Can Enable-ADUser and Disable-ADUser by sAMAccountName' {

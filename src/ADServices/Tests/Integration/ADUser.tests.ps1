@@ -6,6 +6,10 @@ Describe 'ADUser' -Tags Integration {
         $ConnectionParam = Initialize-TestHarness
     }
 
+    AfterAll {
+        Get-Module ADServices | Remove-Module
+    }
+
     It 'Can New-ADUser and Get-ADUser with the correct sAMAccountName' {
         $testUserName = 'createUser1'
         New-ADUser @ConnectionParam -Name $testUserName -Verbose:$VerbosePreference

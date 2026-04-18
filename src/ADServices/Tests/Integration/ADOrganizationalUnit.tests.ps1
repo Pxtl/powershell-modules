@@ -6,6 +6,10 @@ Describe 'ADOrganizationalUnit' -Tags Integration {
         $global:ConnectionParam = Initialize-TestHarness
     }
 
+    AfterAll {
+        Get-Module ADServices | Remove-Module
+    }
+
     It 'Can New-ADOrganizationalUnit in an alternate path' {
         $testOrganizationalUnitName = 'createOrganizationalUnit2'
         $parentPath = 'OU=Subdir,OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'

@@ -6,6 +6,10 @@ Describe 'ADGroup Membership' -Tags Integration {
         $ConnectionParam = Initialize-TestHarness
     }
 
+    AfterAll {
+        Get-Module ADServices | Remove-Module
+    }
+
     It 'Can Add-ADGroupMember and test using Get-ADGroup' {
         # prepare
         $groupCode = 2
