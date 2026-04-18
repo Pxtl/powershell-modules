@@ -36,7 +36,6 @@
   </Target>
   <Target Name="CopyReleaseToModuleRoot" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
     <MakeDir Directories="$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\netstandard2.0"/>
-    <Delete Files="@(MyOutputFiles)" />
     <Copy SourceFiles="@(MySourceFiles)" DestinationFolder="$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\%(RecursiveDir)" SkipUnchangedFiles="false" />
     <Message Text="Copying release output to '$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\'" />
   </Target>

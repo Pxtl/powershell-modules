@@ -5,6 +5,7 @@
     <RootNamespace>Pxtl.ADServices</RootNamespace>
     <GenerateAssemblyInfo>false</GenerateAssemblyInfo>
   </PropertyGroup>
-  <ItemGroup>
-  </ItemGroup>
+  <Target AfterTargets="Clean" Name="AfterClean">
+    <RemoveDir Directories="$(MSBuildProjectDirectory)\ADServices\bin" />
+  </Target>
 </Project>
