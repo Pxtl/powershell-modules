@@ -44,7 +44,7 @@ jobs:
       - name: verify build outputs
         shell: pwsh
         run: |
-          Get-ChildItem ./src/ADServices/ADServices.PSModule/ADServices
+          Get-ChildItem .\src\ADServices\ADServices.PSModule\ADServices\bin\netstandard2.0\
 
       - name: Run PSScriptAnalyzer
         uses: microsoft/psscriptanalyzer-action@6b2948b1944407914a58661c49941824d149734f
@@ -59,17 +59,17 @@ jobs:
 
       # Upload the SARIF file generated in the previous step
       - name: Upload SARIF results file
-        uses: github/codeql-action/upload-sarif@v3
+        uses: github/codeql-action/upload-sarif@v4
         with:
           sarif_file: results.sarif
 
       - name: Install Pester
-        shell: powershell
+        shell: pwsh
         run: |
           Install-Module -Name Pester -Scope CurrentUser
 
       - name: Run Pester Unit Tests
-        shell: powershell
+        shell: pwsh
         # Pester by default searches for any pester tests that are *.test.ps1
         run: |
           Invoke-Pester .\src\ -CI
