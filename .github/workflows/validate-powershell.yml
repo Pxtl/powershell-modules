@@ -35,6 +35,12 @@ jobs:
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v4
+        # build any .NET projects in the directory tree.
+      - name: dotnet build
+        shell: pwsh
+        run: |
+          Get-ChildItem *.sln -Recurse | 
+            ForEach-Object { dotnet build $_ }
 
       - name: Run PSScriptAnalyzer
         uses: microsoft/psscriptanalyzer-action@6b2948b1944407914a58661c49941824d149734f
