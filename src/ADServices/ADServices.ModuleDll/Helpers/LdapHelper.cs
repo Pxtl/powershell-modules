@@ -14,7 +14,7 @@ namespace Pxtl.ADServices
         public static LdapConnection CreateConnection(string server, PSCredential credential)
         {
             LdapDirectoryIdentifier identifier = null;
-            if (server.Contains(':'))
+            if (Regex.IsMatch(server, @"^.*:\d+$"))
             {
                 // server has a port number.  There's a known bug in .net
                 // runtime on linux where port numbers aren't supported in the

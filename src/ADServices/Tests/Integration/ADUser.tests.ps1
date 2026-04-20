@@ -1,7 +1,7 @@
 Describe 'ADUser' -Tags Integration {
     BeforeAll {
-        Import-Module $PSScriptRoot\ADServicesIntegrationTestModule.psm1
-        Import-Module $PSScriptRoot\..\..\ADServices.PSModule\ADServices\ADServices.psd1 -Force
+        Import-Module $PSScriptRoot/ADServicesIntegrationTestModule.psm1
+        Import-Module $PSScriptRoot/../../ADServices.PSModule\ADServices/ADServices.psd1 -Force
         [Diagnostics.CodeAnalysis.SuppressMessage("UseDeclaredVarsMoreThanAssignments","", Scope="member")]
         $ConnectionParam = Initialize-TestHarness
     }
