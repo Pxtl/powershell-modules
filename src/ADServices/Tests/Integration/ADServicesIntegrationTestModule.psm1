@@ -17,6 +17,8 @@ function Initialize-TestHarness {
     process {
         if (-not $Credential) {
             # default credentials for smblds
+            
+            # NOTE: Linux System.DirectoryServices.Protocols 10.0.5 requires "DOMAIN\User" format, Windows allows just "User"
             $Credential = [Management.Automation.PSCredential]::new('SAMDOM\Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
         }
         if (-not (Test-ADRootDSE -Server $Server -Credential $Credential)) {

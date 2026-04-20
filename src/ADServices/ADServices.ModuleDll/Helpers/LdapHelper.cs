@@ -28,7 +28,8 @@ namespace Pxtl.ADServices
                 identifier = new LdapDirectoryIdentifier(server);
             }
             var networkCredential = credential?.GetNetworkCredential();
-            //TODO: support other connection types
+            // TODO: support other connection types
+            // NOTE: Linux System.DirectoryServices.Protocols 10.0.5 only supports AuthType.Basic
             var connection = new LdapConnection(identifier, networkCredential, AuthType.Basic);
             connection.Bind();
             return connection;

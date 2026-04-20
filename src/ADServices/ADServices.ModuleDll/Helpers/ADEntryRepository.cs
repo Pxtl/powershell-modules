@@ -23,13 +23,14 @@ namespace Pxtl.ADServices
                 throw new ArgumentException("LDAPFilter or Identity must be supplied.", nameof(ldapFilter));
             }
             string filter;
+            // NOTE: Linux System.DirectoryServices.Protocols 10.0.5 does not currently allow redundant parentheses unlike Windows.
             if (UnfilteredADEntryTypes.Contains(type))
             {
-                filter = $"({ldapFilter})";
+                filter = $"{ldapFilter}";
             }
             else
             {
-                filter = $"(&({LdapHelper.BuildObjectClassFilter(type)})({ldapFilter}))";
+                filter = $"&({LdapHelper.BuildObjectClassFilter(type)}){ldapFilter}";
             }
             return LdapHelper.SearchObjects<T>(filter, searchBase, server, credential, "*");
         }
