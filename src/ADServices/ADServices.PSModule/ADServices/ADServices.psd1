@@ -1,5 +1,5 @@
 @{  
-    ModuleVersion = '0.3.1'
+    ModuleVersion = '0.3.2'
     GUID = 'c29c8e32-38a3-4ed4-acc3-11ad44bcab3c'
     Author = 'Martin C Zarate (AKA Pxtl)'
     Copyright = '2025, Martin C Zarate'
@@ -34,6 +34,10 @@ feature-incomplete at this time.
             ProjectUri = 'https://github.com/Pxtl/powershell-modules'
             # IconUri = ''
             ReleaseNotes = @'
+v0.3.2
+- Linux support tests pass
+- parenthesis flexibility in filters had to be reduced
+
 v0.3.1
 - restrict manifest to not include peripheral files
 
