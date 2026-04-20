@@ -11,6 +11,7 @@ namespace Pxtl.ADServices
 {
     public static class LdapHelper
     {
+        public static readonly string ADRootDSEFilter = "(objectClass=*)";
         public static LdapConnection CreateConnection(string server, PSCredential credential)
         {
             LdapDirectoryIdentifier identifier = null;
@@ -64,7 +65,7 @@ namespace Pxtl.ADServices
         public static string GetDefaultNamingContext(string server, PSCredential credential)
         {
             using var connection = CreateConnection(server, credential);
-            var entry = SearchObjects<ADRootDSEEntry>("(objectClass=*)", null, server, credential, "defaultNamingContext")
+            var entry = SearchObjects<ADRootDSEEntry>(ADRootDSEFilter, null, server, credential, "defaultNamingContext")
                 .FirstOrDefault();
             if (entry == null)
             {

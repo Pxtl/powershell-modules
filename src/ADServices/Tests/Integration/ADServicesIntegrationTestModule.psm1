@@ -56,7 +56,7 @@ function Clear-TestObjects {
         }
 
         Write-Verbose "Cleanup ADUsers."
-        Get-ADUser @ConnectionParam -LDAPFilter 'sAMAccountName=*' |
+        Get-ADUser @ConnectionParam -LDAPFilter '(sAMAccountName=*)' |
             Select-Object -ExpandProperty distinguishedName |
             Where-Object { 
                 ($_ -NotIn $builtInUserDistinguishedNames) -and ($_ -notlike '*OU=Domain Controllers,DC=samdom,DC=example,DC=com')
@@ -70,7 +70,7 @@ function Clear-TestObjects {
         $builtInGroupDistinguishedNames = Get-BuiltInGroupDistinguishedNames
 
         Write-Verbose "Cleanup ADGroups."
-        Get-ADGroup @ConnectionParam -LDAPFilter 'sAMAccountName=*' |
+        Get-ADGroup @ConnectionParam -LDAPFilter '(sAMAccountName=*)' |
             Select-Object -ExpandProperty distinguishedName |
             Where-Object {
                 $_ -NotIn $builtInGroupDistinguishedNames
@@ -84,7 +84,7 @@ function Clear-TestObjects {
         $builtInOrganizationalUnitDistinguishedNames = Get-BuiltInOrganizationalUnitDistinguishedNames
         
         Write-Verbose  "Cleanup ADOrganizationalUnits."
-        Get-ADOrganizationalUnit @ConnectionParam -LDAPFilter 'distinguishedName=*' |
+        Get-ADOrganizationalUnit @ConnectionParam -LDAPFilter '(distinguishedName=*)' |
             Select-Object -ExpandProperty distinguishedName |
             Where-Object { 
                 $_ -NotIn $builtInOrganizationalUnitDistinguishedNames

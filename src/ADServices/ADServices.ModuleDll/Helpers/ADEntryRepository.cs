@@ -10,6 +10,7 @@ namespace Pxtl.ADServices
     public static class ADEntryRepository
     {
         private readonly static ADEntryType[] UnfilteredADEntryTypes = { ADEntryType.Object, ADEntryType.RootDSE };
+
         public static IEnumerable<T> MaybeGetADObjects<T>(string ldapFilter, string identity, string searchBase, string server, PSCredential credential)
             where T : ADEntry, new()
         {
@@ -30,7 +31,7 @@ namespace Pxtl.ADServices
             }
             else
             {
-                filter = $"&({LdapHelper.BuildObjectClassFilter(type)}){ldapFilter}";
+                filter = $"(&{LdapHelper.BuildObjectClassFilter(type)}{ldapFilter})";
             }
             return LdapHelper.SearchObjects<T>(filter, searchBase, server, credential, "*");
         }
