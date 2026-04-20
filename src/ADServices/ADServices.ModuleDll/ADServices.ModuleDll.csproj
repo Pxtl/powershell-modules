@@ -25,18 +25,12 @@
     <PackageReference Include="System.Memory" Version="4.6.3" />
     <Reference Include="System.DirectoryServices.Protocols" />
   </ItemGroup>
-  <ItemGroup>
-    <MySourceFiles Include="$(MSBuildProjectDirectory)\bin\$(Configuration)\**\*.*" />
-    <MyOutputFiles Include="$(MSBuildProjectDirectory)\..\bin\**\*.*" />
-  </ItemGroup>
-  <Target Name="CopyDebugToModuleRoot" AfterTargets="Build" Condition="'$(Configuration)' == 'Debug'">
+  <Target Name="CopyDebugToModuleRoot" AfterTargets="Build">
+    <ItemGroup>
+      <MySourceFiles Include="$(MSBuildProjectDirectory)\bin\$(Configuration)\**\*.*" />
+    </ItemGroup>
     <MakeDir Directories="$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\netstandard2.0"/>
     <Copy SourceFiles="@(MySourceFiles)" DestinationFolder="$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\%(RecursiveDir)" SkipUnchangedFiles="false" />
     <Message Text="Copying debug output to '$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\'" />
-  </Target>
-  <Target Name="CopyReleaseToModuleRoot" AfterTargets="Build" Condition="'$(Configuration)' == 'Release'">
-    <MakeDir Directories="$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\netstandard2.0"/>
-    <Copy SourceFiles="@(MySourceFiles)" DestinationFolder="$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\%(RecursiveDir)" SkipUnchangedFiles="false" />
-    <Message Text="Copying release output to '$(MSBuildProjectDirectory)\..\ADServices.PSModule\ADServices\bin\'" />
   </Target>
 </Project>
