@@ -12,7 +12,7 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Solution Items", "Solution 
 		global.json = global.json
 	EndProjectSection
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADServices.Pester.Tests", "Tests\ADServices.Pester.Tests.csproj", "{E77F2239-33C0-47B8-91AE-B614C4AC0A00}"
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADServices.Pester", "ADServices.Pester\ADServices.Pester.csproj", "{E77F2239-33C0-47B8-91AE-B614C4AC0A00}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ADServices.PSModule", "ADServices.PSModule\ADServices.PSModule.csproj", "{ACEA1F2E-9516-43C1-8AD0-68E5F60ACABE}"
 EndProject
