@@ -21,10 +21,10 @@ Describe 'ADUser' -Tags Integration {
 
     It 'Can New-ADUser in an alternate path' {
         $testUserName = 'createUser2'
-        $parentPath = 'OU=Subdir,OU=Alternate\ Users,DC=samdom,DC=example,DC=com'
+        $parentPath = 'OU=Subdir,OU=Alternate Users,DC=samdom,DC=example,DC=com'
         $expectedDistinguishedName = "CN=$testUserName,OU=Subdir,OU=Alternate Users,DC=samdom,DC=example,DC=com"
         New-ADOrganizationalUnit @ConnectionParam -Name 'Alternate Users'
-        New-ADOrganizationalUnit @ConnectionParam -Name 'Subdir' -Path 'OU=Alternate\ Users,DC=samdom,DC=example,DC=com'
+        New-ADOrganizationalUnit @ConnectionParam -Name 'Subdir' -Path 'OU=Alternate Users,DC=samdom,DC=example,DC=com'
         New-ADUser @ConnectionParam -Name $testUserName -Path $parentPath
         
         $result = Get-ADUser @ConnectionParam -Identity $expectedDistinguishedName

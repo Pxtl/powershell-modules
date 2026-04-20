@@ -12,11 +12,11 @@ Describe 'ADOrganizationalUnit' -Tags Integration {
 
     It 'Can New-ADOrganizationalUnit in an alternate path' {
         $testOrganizationalUnitName = 'createOrganizationalUnit2'
-        $parentPath = 'OU=Subdir,OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
+        $parentPath = 'OU=Subdir,OU=Alternate OrganizationalUnits,DC=samdom,DC=example,DC=com'
         $distinguishedName = "OU=$testOrganizationalUnitName,$parentPath"
         $expectedDistinguishedName = $distinguishedName -replace '\\', ''
         New-ADOrganizationalUnit @ConnectionParam -Name 'Alternate OrganizationalUnits'
-        New-ADOrganizationalUnit @ConnectionParam -Name 'Subdir' -Path 'OU=Alternate\ OrganizationalUnits,DC=samdom,DC=example,DC=com'
+        New-ADOrganizationalUnit @ConnectionParam -Name 'Subdir' -Path 'OU=Alternate OrganizationalUnits,DC=samdom,DC=example,DC=com'
         New-ADOrganizationalUnit @ConnectionParam -Name $testOrganizationalUnitName -Path $parentPath
         
         $result = Get-ADOrganizationalUnit @ConnectionParam -Identity $distinguishedName
