@@ -32,7 +32,8 @@ jobs:
       contents: read # for actions/checkout to fetch code
       security-events: write # for github/codeql-action/upload-sarif to upload SARIF results
       actions: read # only required for a private repository by github/codeql-action/upload-sarif to get the Action run status
-    runs-on: ubuntu-latest
+    # Ubuntu-latest doesn't have the right LDAP lib for pwsh.
+    runs-on: ubuntu-22.04
     steps:
       - uses: actions/checkout@v4
         # build any .NET projects in the directory tree.
@@ -62,13 +63,6 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name Pester -Scope CurrentUser
-
-      # libldap is not properly installed on the ubuntu image
-      - name: Install libldap
-        shell: pwsh
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y --no-install-recommends libldap-2.5-0
 
       - name: Run Pester Unit Tests
         shell: pwsh
