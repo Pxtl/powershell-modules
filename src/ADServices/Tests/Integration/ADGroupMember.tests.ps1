@@ -7,7 +7,7 @@ Describe 'ADGroup Membership' -Tags Integration {
     }
 
     AfterAll {
-        Get-Module ADServices | Remove-Module
+        Get-Module ADServices, ADServicesIntegrationTestModule | Remove-Module
     }
 
     It 'Can Add-ADGroupMember and test using Get-ADGroup' {

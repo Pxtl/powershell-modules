@@ -7,7 +7,7 @@ Describe 'ADOrganizationalUnit' -Tags Integration {
     }
 
     AfterAll {
-        Get-Module ADServices | Remove-Module
+        Get-Module ADServices, ADServicesIntegrationTestModule | Remove-Module
     }
 
     It 'Can New-ADOrganizationalUnit in an alternate path' {

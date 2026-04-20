@@ -70,5 +70,7 @@ cd ~
 git clone https://github.com/Pxtl/powershell-modules.git
 cd ~/powershell-modules/src/ADServices
 
+dotnet build
+
 pwsh -C 'Install-Module Pester -Force'
 pwsh -C '& ./Tests/Integration/Invoke-IntegrationTest.ps1'

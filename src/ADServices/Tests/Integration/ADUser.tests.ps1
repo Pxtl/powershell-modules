@@ -7,7 +7,7 @@ Describe 'ADUser' -Tags Integration {
     }
 
     AfterAll {
-        Get-Module ADServices | Remove-Module
+        Get-Module ADServices, ADServicesIntegrationTestModule | Remove-Module
     }
 
     It 'Can New-ADUser and Get-ADUser with the correct sAMAccountName' {
