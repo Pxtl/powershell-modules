@@ -13,7 +13,20 @@ namespace Pxtl.ADServices
     {
         public static LdapConnection CreateConnection(string server, PSCredential credential)
         {
-            var identifier = new LdapDirectoryIdentifier(server);
+            LdapDirectoryIdentifier identifier = null;
+            if (server.Contains(':'))
+            {
+                // server has a port number.  There's a known bug in .net
+                // runtime on linux where port numbers aren't supported in the
+                // server name as on Windows.  Extract it and use the alternate
+                // LdapDirectoryIdentifier constructor as workaround.
+                var port = int.Parse(server.Split(':')[1]);
+                server = server.Split(':')[0];
+                identifier = new LdapDirectoryIdentifier(server, port);
+            } else
+            {
+                identifier = new LdapDirectoryIdentifier(server);
+            }
             var networkCredential = credential?.GetNetworkCredential();
             var connection = new LdapConnection(identifier, networkCredential);
             connection.Bind();
