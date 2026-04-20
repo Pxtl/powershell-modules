@@ -17,7 +17,7 @@ function Initialize-TestHarness {
     process {
         if (-not $Credential) {
             # default credentials for smblds
-            $Credential = [Management.Automation.PSCredential]::new('Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
+            $Credential = [Management.Automation.PSCredential]::new('SAMDOM\Administrator', (ConvertTo-SecureString 'Passw0rd' -AsPlainText -Force))
         }
         if (-not (Test-ADRootDSE -Server $Server -Credential $Credential)) {
             # need to Out-Host so that the credentials are the only output in main pipeline.

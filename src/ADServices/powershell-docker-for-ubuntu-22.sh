@@ -55,7 +55,7 @@ apt install -y docker-ce docker-ce-cli containerd.io docker-buildx-plugin docker
 
 sed -i 's/ulimit -Hn 524288/ulimit -n 524288/' /etc/init.d/docker
 apt install -y fuse-overlayfs
-{ "storage-driver": "fuse-overlayfs" } > /etc/docker/daemon.json
+echo '{ "storage-driver": "fuse-overlayfs" }' > /etc/docker/daemon.json
 service start docker
 
 ###################################
@@ -70,5 +70,5 @@ cd ~
 git clone https://github.com/Pxtl/powershell-modules.git
 cd ~/powershell-modules/src/ADServices
 
-pwsh 'Install-Module Pester -Force'
-pwsh '& ./Tests/Integration/Invoke-IntegrationTest.ps1'
+pwsh -C 'Install-Module Pester -Force'
+pwsh -C '& ./Tests/Integration/Invoke-IntegrationTest.ps1'

@@ -28,7 +28,8 @@ namespace Pxtl.ADServices
                 identifier = new LdapDirectoryIdentifier(server);
             }
             var networkCredential = credential?.GetNetworkCredential();
-            var connection = new LdapConnection(identifier, networkCredential);
+            //TODO: support other connection types
+            var connection = new LdapConnection(identifier, networkCredential, AuthType.Basic);
             connection.Bind();
             return connection;
         }
