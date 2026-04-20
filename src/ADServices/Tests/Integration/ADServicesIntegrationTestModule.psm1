@@ -21,7 +21,7 @@ function Initialize-TestHarness {
         }
         if (-not (Test-ADRootDSE -Server $Server -Credential $Credential)) {
             # need to Out-Host so that the credentials are the only output in main pipeline.
-            docker compose -f "$PSScriptRoot\adservices-testdocker\docker-compose.yml" up -d --wait | Out-Host
+            docker compose -f (Convert-Path "$PSScriptRoot/adservices-testdocker/docker-compose.yml") up -d --wait | Out-Host
         }
 
         # output
