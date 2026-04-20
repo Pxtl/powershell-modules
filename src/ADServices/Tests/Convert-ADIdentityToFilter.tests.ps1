@@ -2,7 +2,7 @@
 
 Describe 'Convert-ADIdentityToFilter' {
     BeforeAll {
-        Import-Module $PSScriptRoot\..\ADServices.PSModule\ADServices\ADServices.psd1 -Force
+        Import-Module $PSScriptRoot/../ADServices.PSModule/ADServices/ADServices.psd1 -Force
     }
 
     AfterAll {
