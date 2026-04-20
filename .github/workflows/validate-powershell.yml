@@ -40,11 +40,6 @@ jobs:
         shell: pwsh
         run: |
           Get-ChildItem *.sln -Recurse | ForEach-Object { dotnet build $_.FullName }
-      
-      - name: verify build outputs
-        shell: pwsh
-        run: |
-          Get-ChildItem .\src\ADServices\ADServices.PSModule\ADServices\bin\netstandard2.0\
 
       - name: Run PSScriptAnalyzer
         uses: microsoft/psscriptanalyzer-action@6b2948b1944407914a58661c49941824d149734f
@@ -67,6 +62,13 @@ jobs:
         shell: pwsh
         run: |
           Install-Module -Name Pester -Scope CurrentUser
+
+      # libldap is not properly installed on the ubuntu image
+      - name: Install libldap
+        shell: pwsh
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends libldap-2.5-0
 
       - name: Run Pester Unit Tests
         shell: pwsh
